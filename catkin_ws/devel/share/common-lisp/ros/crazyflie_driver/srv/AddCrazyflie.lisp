@@ -41,7 +41,37 @@
     :reader log_blocks
     :initarg :log_blocks
     :type (cl:vector crazyflie_driver-msg:LogBlock)
-   :initform (cl:make-array 0 :element-type 'crazyflie_driver-msg:LogBlock :initial-element (cl:make-instance 'crazyflie_driver-msg:LogBlock))))
+   :initform (cl:make-array 0 :element-type 'crazyflie_driver-msg:LogBlock :initial-element (cl:make-instance 'crazyflie_driver-msg:LogBlock)))
+   (use_ros_time
+    :reader use_ros_time
+    :initarg :use_ros_time
+    :type cl:boolean
+    :initform cl:nil)
+   (enable_logging_imu
+    :reader enable_logging_imu
+    :initarg :enable_logging_imu
+    :type cl:boolean
+    :initform cl:nil)
+   (enable_logging_temperature
+    :reader enable_logging_temperature
+    :initarg :enable_logging_temperature
+    :type cl:boolean
+    :initform cl:nil)
+   (enable_logging_magnetic_field
+    :reader enable_logging_magnetic_field
+    :initarg :enable_logging_magnetic_field
+    :type cl:boolean
+    :initform cl:nil)
+   (enable_logging_pressure
+    :reader enable_logging_pressure
+    :initarg :enable_logging_pressure
+    :type cl:boolean
+    :initform cl:nil)
+   (enable_logging_battery
+    :reader enable_logging_battery
+    :initarg :enable_logging_battery
+    :type cl:boolean
+    :initform cl:nil))
 )
 
 (cl:defclass AddCrazyflie-request (<AddCrazyflie-request>)
@@ -86,6 +116,36 @@
 (cl:defmethod log_blocks-val ((m <AddCrazyflie-request>))
   (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:log_blocks-val is deprecated.  Use crazyflie_driver-srv:log_blocks instead.")
   (log_blocks m))
+
+(cl:ensure-generic-function 'use_ros_time-val :lambda-list '(m))
+(cl:defmethod use_ros_time-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:use_ros_time-val is deprecated.  Use crazyflie_driver-srv:use_ros_time instead.")
+  (use_ros_time m))
+
+(cl:ensure-generic-function 'enable_logging_imu-val :lambda-list '(m))
+(cl:defmethod enable_logging_imu-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:enable_logging_imu-val is deprecated.  Use crazyflie_driver-srv:enable_logging_imu instead.")
+  (enable_logging_imu m))
+
+(cl:ensure-generic-function 'enable_logging_temperature-val :lambda-list '(m))
+(cl:defmethod enable_logging_temperature-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:enable_logging_temperature-val is deprecated.  Use crazyflie_driver-srv:enable_logging_temperature instead.")
+  (enable_logging_temperature m))
+
+(cl:ensure-generic-function 'enable_logging_magnetic_field-val :lambda-list '(m))
+(cl:defmethod enable_logging_magnetic_field-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:enable_logging_magnetic_field-val is deprecated.  Use crazyflie_driver-srv:enable_logging_magnetic_field instead.")
+  (enable_logging_magnetic_field m))
+
+(cl:ensure-generic-function 'enable_logging_pressure-val :lambda-list '(m))
+(cl:defmethod enable_logging_pressure-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:enable_logging_pressure-val is deprecated.  Use crazyflie_driver-srv:enable_logging_pressure instead.")
+  (enable_logging_pressure m))
+
+(cl:ensure-generic-function 'enable_logging_battery-val :lambda-list '(m))
+(cl:defmethod enable_logging_battery-val ((m <AddCrazyflie-request>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-srv:enable_logging_battery-val is deprecated.  Use crazyflie_driver-srv:enable_logging_battery instead.")
+  (enable_logging_battery m))
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <AddCrazyflie-request>) ostream)
   "Serializes a message object of type '<AddCrazyflie-request>"
   (cl:let ((__ros_str_len (cl:length (cl:slot-value msg 'uri))))
@@ -119,6 +179,12 @@
     (cl:write-byte (cl:ldb (cl:byte 8 24) __ros_arr_len) ostream))
   (cl:map cl:nil #'(cl:lambda (ele) (roslisp-msg-protocol:serialize ele ostream))
    (cl:slot-value msg 'log_blocks))
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'use_ros_time) 1 0)) ostream)
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'enable_logging_imu) 1 0)) ostream)
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'enable_logging_temperature) 1 0)) ostream)
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'enable_logging_magnetic_field) 1 0)) ostream)
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'enable_logging_pressure) 1 0)) ostream)
+  (cl:write-byte (cl:ldb (cl:byte 8 0) (cl:if (cl:slot-value msg 'enable_logging_battery) 1 0)) ostream)
 )
 (cl:defmethod roslisp-msg-protocol:deserialize ((msg <AddCrazyflie-request>) istream)
   "Deserializes a message object of type '<AddCrazyflie-request>"
@@ -162,6 +228,12 @@
     (cl:dotimes (i __ros_arr_len)
     (cl:setf (cl:aref vals i) (cl:make-instance 'crazyflie_driver-msg:LogBlock))
   (roslisp-msg-protocol:deserialize (cl:aref vals i) istream))))
+    (cl:setf (cl:slot-value msg 'use_ros_time) (cl:not (cl:zerop (cl:read-byte istream))))
+    (cl:setf (cl:slot-value msg 'enable_logging_imu) (cl:not (cl:zerop (cl:read-byte istream))))
+    (cl:setf (cl:slot-value msg 'enable_logging_temperature) (cl:not (cl:zerop (cl:read-byte istream))))
+    (cl:setf (cl:slot-value msg 'enable_logging_magnetic_field) (cl:not (cl:zerop (cl:read-byte istream))))
+    (cl:setf (cl:slot-value msg 'enable_logging_pressure) (cl:not (cl:zerop (cl:read-byte istream))))
+    (cl:setf (cl:slot-value msg 'enable_logging_battery) (cl:not (cl:zerop (cl:read-byte istream))))
   msg
 )
 (cl:defmethod roslisp-msg-protocol:ros-datatype ((msg (cl:eql '<AddCrazyflie-request>)))
@@ -172,16 +244,16 @@
   "crazyflie_driver/AddCrazyflieRequest")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<AddCrazyflie-request>)))
   "Returns md5sum for a message object of type '<AddCrazyflie-request>"
-  "281517a9f976c165030a3b33c63a9478")
+  "ecc01ed9b37cee7a67ca59fc53aeb029")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'AddCrazyflie-request)))
   "Returns md5sum for a message object of type 'AddCrazyflie-request"
-  "281517a9f976c165030a3b33c63a9478")
+  "ecc01ed9b37cee7a67ca59fc53aeb029")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<AddCrazyflie-request>)))
   "Returns full string definition for message of type '<AddCrazyflie-request>"
-  (cl:format cl:nil "string uri~%string tf_prefix~%float32 roll_trim~%float32 pitch_trim~%bool enable_logging~%bool enable_parameters~%LogBlock[] log_blocks~%~%================================================================================~%MSG: crazyflie_driver/LogBlock~%string topic_name~%int16 frequency~%string[] variables~%~%~%"))
+  (cl:format cl:nil "string uri~%string tf_prefix~%float32 roll_trim~%float32 pitch_trim~%bool enable_logging~%bool enable_parameters~%LogBlock[] log_blocks~%bool use_ros_time~%bool enable_logging_imu~%bool enable_logging_temperature~%bool enable_logging_magnetic_field~%bool enable_logging_pressure~%bool enable_logging_battery~%~%================================================================================~%MSG: crazyflie_driver/LogBlock~%string topic_name~%int16 frequency~%string[] variables~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'AddCrazyflie-request)))
   "Returns full string definition for message of type 'AddCrazyflie-request"
-  (cl:format cl:nil "string uri~%string tf_prefix~%float32 roll_trim~%float32 pitch_trim~%bool enable_logging~%bool enable_parameters~%LogBlock[] log_blocks~%~%================================================================================~%MSG: crazyflie_driver/LogBlock~%string topic_name~%int16 frequency~%string[] variables~%~%~%"))
+  (cl:format cl:nil "string uri~%string tf_prefix~%float32 roll_trim~%float32 pitch_trim~%bool enable_logging~%bool enable_parameters~%LogBlock[] log_blocks~%bool use_ros_time~%bool enable_logging_imu~%bool enable_logging_temperature~%bool enable_logging_magnetic_field~%bool enable_logging_pressure~%bool enable_logging_battery~%~%================================================================================~%MSG: crazyflie_driver/LogBlock~%string topic_name~%int16 frequency~%string[] variables~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <AddCrazyflie-request>))
   (cl:+ 0
      4 (cl:length (cl:slot-value msg 'uri))
@@ -191,6 +263,12 @@
      1
      1
      4 (cl:reduce #'cl:+ (cl:slot-value msg 'log_blocks) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ (roslisp-msg-protocol:serialization-length ele))))
+     1
+     1
+     1
+     1
+     1
+     1
 ))
 (cl:defmethod roslisp-msg-protocol:ros-message-to-list ((msg <AddCrazyflie-request>))
   "Converts a ROS message object to a list"
@@ -202,6 +280,12 @@
     (cl:cons ':enable_logging (enable_logging msg))
     (cl:cons ':enable_parameters (enable_parameters msg))
     (cl:cons ':log_blocks (log_blocks msg))
+    (cl:cons ':use_ros_time (use_ros_time msg))
+    (cl:cons ':enable_logging_imu (enable_logging_imu msg))
+    (cl:cons ':enable_logging_temperature (enable_logging_temperature msg))
+    (cl:cons ':enable_logging_magnetic_field (enable_logging_magnetic_field msg))
+    (cl:cons ':enable_logging_pressure (enable_logging_pressure msg))
+    (cl:cons ':enable_logging_battery (enable_logging_battery msg))
 ))
 ;//! \htmlinclude AddCrazyflie-response.msg.html
 
@@ -231,10 +315,10 @@
   "crazyflie_driver/AddCrazyflieResponse")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<AddCrazyflie-response>)))
   "Returns md5sum for a message object of type '<AddCrazyflie-response>"
-  "281517a9f976c165030a3b33c63a9478")
+  "ecc01ed9b37cee7a67ca59fc53aeb029")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'AddCrazyflie-response)))
   "Returns md5sum for a message object of type 'AddCrazyflie-response"
-  "281517a9f976c165030a3b33c63a9478")
+  "ecc01ed9b37cee7a67ca59fc53aeb029")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<AddCrazyflie-response>)))
   "Returns full string definition for message of type '<AddCrazyflie-response>"
   (cl:format cl:nil "~%~%~%"))

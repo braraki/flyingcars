@@ -7,7 +7,12 @@
 ;//! \htmlinclude GenericLogData.msg.html
 
 (cl:defclass <GenericLogData> (roslisp-msg-protocol:ros-message)
-  ((values
+  ((header
+    :reader header
+    :initarg :header
+    :type std_msgs-msg:Header
+    :initform (cl:make-instance 'std_msgs-msg:Header))
+   (values
     :reader values
     :initarg :values
     :type (cl:vector cl:float)
@@ -22,12 +27,18 @@
   (cl:unless (cl:typep m 'GenericLogData)
     (roslisp-msg-protocol:msg-deprecation-warning "using old message class name crazyflie_driver-msg:<GenericLogData> is deprecated: use crazyflie_driver-msg:GenericLogData instead.")))
 
+(cl:ensure-generic-function 'header-val :lambda-list '(m))
+(cl:defmethod header-val ((m <GenericLogData>))
+  (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-msg:header-val is deprecated.  Use crazyflie_driver-msg:header instead.")
+  (header m))
+
 (cl:ensure-generic-function 'values-val :lambda-list '(m))
 (cl:defmethod values-val ((m <GenericLogData>))
   (roslisp-msg-protocol:msg-deprecation-warning "Using old-style slot reader crazyflie_driver-msg:values-val is deprecated.  Use crazyflie_driver-msg:values instead.")
   (values m))
 (cl:defmethod roslisp-msg-protocol:serialize ((msg <GenericLogData>) ostream)
   "Serializes a message object of type '<GenericLogData>"
+  (roslisp-msg-protocol:serialize (cl:slot-value msg 'header) ostream)
   (cl:let ((__ros_arr_len (cl:length (cl:slot-value msg 'values))))
     (cl:write-byte (cl:ldb (cl:byte 8 0) __ros_arr_len) ostream)
     (cl:write-byte (cl:ldb (cl:byte 8 8) __ros_arr_len) ostream)
@@ -46,6 +57,7 @@
 )
 (cl:defmethod roslisp-msg-protocol:deserialize ((msg <GenericLogData>) istream)
   "Deserializes a message object of type '<GenericLogData>"
+  (roslisp-msg-protocol:deserialize (cl:slot-value msg 'header) istream)
   (cl:let ((__ros_arr_len 0))
     (cl:setf (cl:ldb (cl:byte 8 0) __ros_arr_len) (cl:read-byte istream))
     (cl:setf (cl:ldb (cl:byte 8 8) __ros_arr_len) (cl:read-byte istream))
@@ -74,22 +86,24 @@
   "crazyflie_driver/GenericLogData")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql '<GenericLogData>)))
   "Returns md5sum for a message object of type '<GenericLogData>"
-  "b9163d7c678dcd669317e43e46b63d96")
+  "bfa79f36371fee74e53d96afde61049b")
 (cl:defmethod roslisp-msg-protocol:md5sum ((type (cl:eql 'GenericLogData)))
   "Returns md5sum for a message object of type 'GenericLogData"
-  "b9163d7c678dcd669317e43e46b63d96")
+  "bfa79f36371fee74e53d96afde61049b")
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql '<GenericLogData>)))
   "Returns full string definition for message of type '<GenericLogData>"
-  (cl:format cl:nil "float64[] values~%~%~%"))
+  (cl:format cl:nil "Header header~%float64[] values~%~%================================================================================~%MSG: std_msgs/Header~%# Standard metadata for higher-level stamped data types.~%# This is generally used to communicate timestamped data ~%# in a particular coordinate frame.~%# ~%# sequence ID: consecutively increasing ID ~%uint32 seq~%#Two-integer timestamp that is expressed as:~%# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')~%# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')~%# time-handling sugar is provided by the client library~%time stamp~%#Frame this data is associated with~%# 0: no frame~%# 1: global frame~%string frame_id~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:message-definition ((type (cl:eql 'GenericLogData)))
   "Returns full string definition for message of type 'GenericLogData"
-  (cl:format cl:nil "float64[] values~%~%~%"))
+  (cl:format cl:nil "Header header~%float64[] values~%~%================================================================================~%MSG: std_msgs/Header~%# Standard metadata for higher-level stamped data types.~%# This is generally used to communicate timestamped data ~%# in a particular coordinate frame.~%# ~%# sequence ID: consecutively increasing ID ~%uint32 seq~%#Two-integer timestamp that is expressed as:~%# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')~%# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')~%# time-handling sugar is provided by the client library~%time stamp~%#Frame this data is associated with~%# 0: no frame~%# 1: global frame~%string frame_id~%~%~%"))
 (cl:defmethod roslisp-msg-protocol:serialization-length ((msg <GenericLogData>))
   (cl:+ 0
+     (roslisp-msg-protocol:serialization-length (cl:slot-value msg 'header))
      4 (cl:reduce #'cl:+ (cl:slot-value msg 'values) :key #'(cl:lambda (ele) (cl:declare (cl:ignorable ele)) (cl:+ 8)))
 ))
 (cl:defmethod roslisp-msg-protocol:ros-message-to-list ((msg <GenericLogData>))
   "Converts a ROS message object to a list"
   (cl:list 'GenericLogData
+    (cl:cons ':header (header msg))
     (cl:cons ':values (values msg))
 ))

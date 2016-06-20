@@ -15,6 +15,7 @@
 #include <ros/builtin_message_traits.h>
 #include <ros/message_operations.h>
 
+#include <std_msgs/Header.h>
 
 namespace crazyflie_driver
 {
@@ -24,13 +25,18 @@ struct GenericLogData_
   typedef GenericLogData_<ContainerAllocator> Type;
 
   GenericLogData_()
-    : values()  {
+    : header()
+    , values()  {
     }
   GenericLogData_(const ContainerAllocator& _alloc)
-    : values(_alloc)  {
+    : header(_alloc)
+    , values(_alloc)  {
     }
 
 
+
+   typedef  ::std_msgs::Header_<ContainerAllocator>  _header_type;
+  _header_type header;
 
    typedef std::vector<double, typename ContainerAllocator::template rebind<double>::other >  _values_type;
   _values_type values;
@@ -68,7 +74,7 @@ namespace message_traits
 
 
 
-// BOOLTRAITS {'IsFixedSize': False, 'IsMessage': True, 'HasHeader': False}
+// BOOLTRAITS {'IsFixedSize': False, 'IsMessage': True, 'HasHeader': True}
 // {'crazyflie_driver': ['/home/brandon/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/msg'], 'std_msgs': ['/opt/ros/indigo/share/std_msgs/cmake/../msg']}
 
 // !!!!!!!!!!! ['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_parsed_fields', 'constants', 'fields', 'full_name', 'has_header', 'header_present', 'names', 'package', 'parsed_fields', 'short_name', 'text', 'types']
@@ -98,12 +104,12 @@ struct IsMessage< ::crazyflie_driver::GenericLogData_<ContainerAllocator> const>
 
 template <class ContainerAllocator>
 struct HasHeader< ::crazyflie_driver::GenericLogData_<ContainerAllocator> >
-  : FalseType
+  : TrueType
   { };
 
 template <class ContainerAllocator>
 struct HasHeader< ::crazyflie_driver::GenericLogData_<ContainerAllocator> const>
-  : FalseType
+  : TrueType
   { };
 
 
@@ -112,12 +118,12 @@ struct MD5Sum< ::crazyflie_driver::GenericLogData_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "b9163d7c678dcd669317e43e46b63d96";
+    return "bfa79f36371fee74e53d96afde61049b";
   }
 
   static const char* value(const ::crazyflie_driver::GenericLogData_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0xb9163d7c678dcd66ULL;
-  static const uint64_t static_value2 = 0x9317e43e46b63d96ULL;
+  static const uint64_t static_value1 = 0xbfa79f36371fee74ULL;
+  static const uint64_t static_value2 = 0xe53d96afde61049bULL;
 };
 
 template<class ContainerAllocator>
@@ -136,7 +142,26 @@ struct Definition< ::crazyflie_driver::GenericLogData_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "float64[] values\n\
+    return "Header header\n\
+float64[] values\n\
+\n\
+================================================================================\n\
+MSG: std_msgs/Header\n\
+# Standard metadata for higher-level stamped data types.\n\
+# This is generally used to communicate timestamped data \n\
+# in a particular coordinate frame.\n\
+# \n\
+# sequence ID: consecutively increasing ID \n\
+uint32 seq\n\
+#Two-integer timestamp that is expressed as:\n\
+# * stamp.sec: seconds (stamp_secs) since epoch (in Python the variable is called 'secs')\n\
+# * stamp.nsec: nanoseconds since stamp_secs (in Python the variable is called 'nsecs')\n\
+# time-handling sugar is provided by the client library\n\
+time stamp\n\
+#Frame this data is associated with\n\
+# 0: no frame\n\
+# 1: global frame\n\
+string frame_id\n\
 ";
   }
 
@@ -155,6 +180,7 @@ namespace serialization
   {
     template<typename Stream, typename T> inline static void allInOne(Stream& stream, T m)
     {
+      stream.next(m.header);
       stream.next(m.values);
     }
 
@@ -174,6 +200,9 @@ struct Printer< ::crazyflie_driver::GenericLogData_<ContainerAllocator> >
 {
   template<typename Stream> static void stream(Stream& s, const std::string& indent, const ::crazyflie_driver::GenericLogData_<ContainerAllocator>& v)
   {
+    s << indent << "header: ";
+    s << std::endl;
+    Printer< ::std_msgs::Header_<ContainerAllocator> >::stream(s, indent + "  ", v.header);
     s << indent << "values[]" << std::endl;
     for (size_t i = 0; i < v.values.size(); ++i)
     {

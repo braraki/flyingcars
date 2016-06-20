@@ -31,7 +31,13 @@ struct AddCrazyflieRequest_
     , pitch_trim(0.0)
     , enable_logging(false)
     , enable_parameters(false)
-    , log_blocks()  {
+    , log_blocks()
+    , use_ros_time(false)
+    , enable_logging_imu(false)
+    , enable_logging_temperature(false)
+    , enable_logging_magnetic_field(false)
+    , enable_logging_pressure(false)
+    , enable_logging_battery(false)  {
     }
   AddCrazyflieRequest_(const ContainerAllocator& _alloc)
     : uri(_alloc)
@@ -40,7 +46,13 @@ struct AddCrazyflieRequest_
     , pitch_trim(0.0)
     , enable_logging(false)
     , enable_parameters(false)
-    , log_blocks(_alloc)  {
+    , log_blocks(_alloc)
+    , use_ros_time(false)
+    , enable_logging_imu(false)
+    , enable_logging_temperature(false)
+    , enable_logging_magnetic_field(false)
+    , enable_logging_pressure(false)
+    , enable_logging_battery(false)  {
     }
 
 
@@ -65,6 +77,24 @@ struct AddCrazyflieRequest_
 
    typedef std::vector< ::crazyflie_driver::LogBlock_<ContainerAllocator> , typename ContainerAllocator::template rebind< ::crazyflie_driver::LogBlock_<ContainerAllocator> >::other >  _log_blocks_type;
   _log_blocks_type log_blocks;
+
+   typedef uint8_t _use_ros_time_type;
+  _use_ros_time_type use_ros_time;
+
+   typedef uint8_t _enable_logging_imu_type;
+  _enable_logging_imu_type enable_logging_imu;
+
+   typedef uint8_t _enable_logging_temperature_type;
+  _enable_logging_temperature_type enable_logging_temperature;
+
+   typedef uint8_t _enable_logging_magnetic_field_type;
+  _enable_logging_magnetic_field_type enable_logging_magnetic_field;
+
+   typedef uint8_t _enable_logging_pressure_type;
+  _enable_logging_pressure_type enable_logging_pressure;
+
+   typedef uint8_t _enable_logging_battery_type;
+  _enable_logging_battery_type enable_logging_battery;
 
 
 
@@ -143,12 +173,12 @@ struct MD5Sum< ::crazyflie_driver::AddCrazyflieRequest_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "281517a9f976c165030a3b33c63a9478";
+    return "ecc01ed9b37cee7a67ca59fc53aeb029";
   }
 
   static const char* value(const ::crazyflie_driver::AddCrazyflieRequest_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0x281517a9f976c165ULL;
-  static const uint64_t static_value2 = 0x030a3b33c63a9478ULL;
+  static const uint64_t static_value1 = 0xecc01ed9b37cee7aULL;
+  static const uint64_t static_value2 = 0x67ca59fc53aeb029ULL;
 };
 
 template<class ContainerAllocator>
@@ -174,6 +204,12 @@ float32 pitch_trim\n\
 bool enable_logging\n\
 bool enable_parameters\n\
 LogBlock[] log_blocks\n\
+bool use_ros_time\n\
+bool enable_logging_imu\n\
+bool enable_logging_temperature\n\
+bool enable_logging_magnetic_field\n\
+bool enable_logging_pressure\n\
+bool enable_logging_battery\n\
 \n\
 ================================================================================\n\
 MSG: crazyflie_driver/LogBlock\n\
@@ -205,6 +241,12 @@ namespace serialization
       stream.next(m.enable_logging);
       stream.next(m.enable_parameters);
       stream.next(m.log_blocks);
+      stream.next(m.use_ros_time);
+      stream.next(m.enable_logging_imu);
+      stream.next(m.enable_logging_temperature);
+      stream.next(m.enable_logging_magnetic_field);
+      stream.next(m.enable_logging_pressure);
+      stream.next(m.enable_logging_battery);
     }
 
     ROS_DECLARE_ALLINONE_SERIALIZER;
@@ -243,6 +285,18 @@ struct Printer< ::crazyflie_driver::AddCrazyflieRequest_<ContainerAllocator> >
       s << indent;
       Printer< ::crazyflie_driver::LogBlock_<ContainerAllocator> >::stream(s, indent + "    ", v.log_blocks[i]);
     }
+    s << indent << "use_ros_time: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.use_ros_time);
+    s << indent << "enable_logging_imu: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.enable_logging_imu);
+    s << indent << "enable_logging_temperature: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.enable_logging_temperature);
+    s << indent << "enable_logging_magnetic_field: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.enable_logging_magnetic_field);
+    s << indent << "enable_logging_pressure: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.enable_logging_pressure);
+    s << indent << "enable_logging_battery: ";
+    Printer<uint8_t>::stream(s, indent + "  ", v.enable_logging_battery);
   }
 };
 
