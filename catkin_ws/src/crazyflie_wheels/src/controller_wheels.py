@@ -54,21 +54,21 @@ class Controller():
                 #     print(not value)
 
                 if i == 4 and data.buttons[i] == 1:
-                    rospy.set_param("wheels/state", 1)
-                    rospy.set_param("wheels/pwm_1", 110)
-                    rospy.set_param("wheels/pwm_2", 110)
-                elif i == 5 and data.buttons[i] == 1:
-                    rospy.set_param("wheels/state", 3)
-                    rospy.set_param("wheels/pwm_1", 110)
-                    rospy.set_param("wheels/pwm_2", 110)
-                elif i == 6 and data.buttons[i] == 1:
-                    rospy.set_param("wheels/state", 4)
-                    rospy.set_param("wheels/pwm_1", 110)
-                    rospy.set_param("wheels/pwm_2", 110)
-                elif i == 7 and data.buttons[i] == 1:
                     rospy.set_param("wheels/state", 2)
-                    rospy.set_param("wheels/pwm_1", 110)
-                    rospy.set_param("wheels/pwm_2", 110)
+                    rospy.set_param("wheels/pwm_1", 230)
+                    rospy.set_param("wheels/pwm_2", 230)
+                elif i == 5 and data.buttons[i] == 1:
+                    rospy.set_param("wheels/state", 1)
+                    rospy.set_param("wheels/pwm_1", 230)
+                    rospy.set_param("wheels/pwm_2", 230)
+                elif i == 6 and data.buttons[i] == 1:
+                    rospy.set_param("wheels/state", 3)
+                    rospy.set_param("wheels/pwm_1", 230)
+                    rospy.set_param("wheels/pwm_2", 230)
+                elif i == 7 and data.buttons[i] == 1:
+                    rospy.set_param("wheels/state", 4)
+                    rospy.set_param("wheels/pwm_1", 230)
+                    rospy.set_param("wheels/pwm_2", 230)
                 else:
                     rospy.set_param("wheels/state", 0)
                     rospy.set_param("wheels/pwm_1", 0)

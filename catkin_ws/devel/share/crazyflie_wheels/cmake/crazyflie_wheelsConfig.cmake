@@ -103,11 +103,7 @@ if(NOT " " STREQUAL " ")
         message(FATAL_ERROR "Project 'crazyflie_wheels' specifies '${idir}' as an include dir, which is not found.  It does not exist in '${include}'.  Ask the maintainer 'Brandon Araki <araki@mit.edu>' to fix it.")
       endif()
     else()
-<<<<<<< HEAD
-      message(FATAL_ERROR "Project 'crazyflie_wheels' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_wheels/${idir}'.  Ask the maintainer 'brandon <brandon@todo.todo>' to fix it.")
-=======
-      message(FATAL_ERROR "Project 'crazyflie_wheels' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/brandon/flyingcars/catkin_ws/src/crazyflie_wheels/${idir}'.  Ask the maintainer 'Brandon Araki <araki@mit.edu>' to fix it.")
->>>>>>> f6e4d15a7a6035b2b288c3c223d36c102040b1b0
+      message(FATAL_ERROR "Project 'crazyflie_wheels' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_wheels/${idir}'.  Ask the maintainer 'Brandon Araki <araki@mit.edu>' to fix it.")
     endif()
     _list_append_unique(crazyflie_wheels_INCLUDE_DIRS ${include})
   endforeach()
@@ -186,7 +182,7 @@ foreach(depend ${depends})
   list(APPEND crazyflie_wheels_EXPORTED_TARGETS ${${crazyflie_wheels_dep}_EXPORTED_TARGETS})
 endforeach()
 
-set(pkg_cfg_extras "crazyflie_wheels-msg-extras.cmake")
+set(pkg_cfg_extras "")
 foreach(extra ${pkg_cfg_extras})
   if(NOT IS_ABSOLUTE ${extra})
     set(extra ${crazyflie_wheels_DIR}/${extra})

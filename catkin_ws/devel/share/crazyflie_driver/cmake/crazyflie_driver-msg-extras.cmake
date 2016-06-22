@@ -1,2 +1,2 @@
-set(crazyflie_driver_MESSAGE_FILES "/home/brandon/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/msg/LogBlock.msg;/home/brandon/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/msg/GenericLogData.msg")
-set(crazyflie_driver_SERVICE_FILES "/home/brandon/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/srv/AddCrazyflie.srv;/home/brandon/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/srv/UpdateParams.srv")
+set(crazyflie_driver_MESSAGE_FILES "/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/msg/LogBlock.msg;/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/msg/GenericLogData.msg")
+set(crazyflie_driver_SERVICE_FILES "/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/srv/AddCrazyflie.srv;/home/spohorec/UROP_Summer_2016_Picobug/flyingcars/catkin_ws/src/crazyflie_ros/crazyflie_driver/srv/UpdateParams.srv")

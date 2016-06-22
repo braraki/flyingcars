@@ -55,7 +55,7 @@ Visualization Manager:
       Enabled: true
       History Length: 1
       Name: Imu
-      Topic: 
+      Topic:
       Value: true
   Enabled: true
   Global Options:
