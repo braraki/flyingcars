@@ -5,8 +5,8 @@
   <arg name="uri" />
   <arg name="joy_dev" default="/dev/input/js0" />
 
-  <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
-  </include>
+  <!--<include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
+  </include>-->
 
   <group ns="$(arg veh)">
     <!--<param name="crazyflie/pid_rate/yaw_kp" value="200"/>-->
@@ -15,9 +15,9 @@
       <arg name="tf_prefix" value="$(arg veh)" />
     </include>
 
-    <node name="joy" pkg="joy" type="joy_node" output="screen" >
+    <!--<node name="joy" pkg="joy" type="joy_node" output="screen" >
       <param name="dev" value="$(arg joy_dev)" />
-    </node>
+    </node> -->
 
     <include file="$(find crazyflie_demo)/launch/ps3.launch">
     </include>
@@ -27,11 +27,11 @@
 
   </group>
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_wheels)/launch/crazyflie.rviz" />
+  <!--<node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_wheels)/launch/crazyflie.rviz" />-->
 
-  <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot2" args="/$(arg veh)/battery"/>
+  <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot2" args="/$(arg veh)/battery"/>
 
-  <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot3" args="/$(arg veh)/rssi"/>
+  <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot3" args="/$(arg veh)/rssi"/> -->
 </launch>
 
 
