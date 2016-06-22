@@ -2,7 +2,7 @@
 
 <launch>
   <arg name="veh" />
-  <arg name="uri" default="radio://0/80/2M" />
+  <arg name="uri" />
   <arg name="joy_dev" default="/dev/input/js0" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
@@ -27,7 +27,7 @@
 
   </group>
 
-  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_demo)/launch/crazyflie.rviz" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find crazyflie_wheels)/launch/crazyflie.rviz" />
 
   <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot2" args="/$(arg veh)/battery"/>
 

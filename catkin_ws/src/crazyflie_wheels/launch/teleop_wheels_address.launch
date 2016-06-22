@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+	<arg name="veh" />
+  <node name="crazyflie" pkg="crazyflie_wheels" type="assign_address.sh" args="$(arg veh)" />
+
+  </node>
+
+</launch>
