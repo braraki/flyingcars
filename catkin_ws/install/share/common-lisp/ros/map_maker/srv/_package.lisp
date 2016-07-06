@@ -1,0 +1,15 @@
+(cl:defpackage map_maker-srv
+  (:use )
+  (:export
+   "MAPTALK"
+   "<MAPTALK-REQUEST>"
+   "MAPTALK-REQUEST"
+   "<MAPTALK-RESPONSE>"
+   "MAPTALK-RESPONSE"
+   "ADDTWOINTS"
+   "<ADDTWOINTS-REQUEST>"
+   "ADDTWOINTS-REQUEST"
+   "<ADDTWOINTS-RESPONSE>"
+   "ADDTWOINTS-RESPONSE"
+  ))
+

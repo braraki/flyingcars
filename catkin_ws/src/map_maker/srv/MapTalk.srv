@@ -1,0 +1,9 @@
+---
+#map information
+int32[] category_list
+int32[] x_list
+int32[] y_list
+int16[] z_list
+int16 num_IDs
+int16[] adjacency_array
+
