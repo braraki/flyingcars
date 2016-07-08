@@ -95,7 +95,7 @@ class tile:
 			if i not in self.exitnodelist:
 				self.exitnodelist.append(i)
 		self.flyable = flyable
-		self.road_ratio = auto_road_ratio
+		self.road_ratio = road_ratio
 		self.elevation = elevation
 		self.x = x
 		self.y = y
@@ -113,7 +113,7 @@ class tile:
 		#helipad
 		if self.exitnodelist == ['C']:
 			n = node(self.x, self.y, self.elevation, get_rud_angle(0,0))
-			n.add_category(Category.land)
+			n.add_category(Category.park)
 			self.node_list.append(n)
 		#dead-end
 		elif len(self.exitnodelist) == 1:
@@ -174,6 +174,15 @@ class tile:
 					if node1.category == Category.land and node2.category == Category.land:
 						if (node2.angle - node1.angle)%360 == 90:
 							node1.add_successor(node2)
+						
+						if len(self.exitnodelist) == 2:
+							if 'N' in self.exitnodelist and 'S' in self.exitnodelist:
+								node1.add_successor(node2)
+								node2.add_successor(node1)
+							elif 'E' in self.exitnodelist and 'W' in self.exitnodelist:
+								node1.add_successor(node2)
+								node2.add_successor(node1)
+						
 
 	#adds parking nodes to a tile
 	def add_and_connect_parking(self):
@@ -306,6 +315,7 @@ class tile:
 			plt.plot([x, base_x+.5*length],[y, base_y +.5*width], 'g')
 			plt.plot([x, base_x+.5*length],[y, base_y +.5*width], 'go')
 
+#think about remove interface and cloud arguments, never will be used
 class landscape:
 	#initiates a landscape
 	def __init__(self, num_long, num_wide, tile_dict = {}, interface = None, cloud = None):
@@ -426,9 +436,10 @@ class landscape:
 				n.ID = num
 				num += 1
 		if self.interface != None and self.cloud != None:
-			for n in self.interface.node_dict.values():
-				n.ID = num
-				num += 1
+			for ns in self.interface.node_dict.values():
+				for n in ns:
+					n.ID = num
+					num += 1
 			for n in self.cloud.node_dict.values():
 				n.ID = num
 				num += 1
@@ -451,7 +462,12 @@ class landscape:
 				return_node_list.append(info[0])
 				edge_list += info[1]
 		if self.interface != None and self.cloud != None:
-			for n in self.interface.node_dict.values()+self.cloud.node_dict.values():
+			for ns in self.interface.node_dict.values():
+				for n in ns:
+					info = n.generate_return_and_edge()
+					return_node_list.append(info[0])
+					edge_list += info[1]
+			for n in self.cloud.node_dict.values():
 				info = n.generate_return_and_edge()
 				return_node_list.append(info[0])
 				edge_list += info[1]
@@ -474,6 +490,7 @@ class landscape:
 
 	#connects interface to cloud
 	def connect_interface_and_cloud(self):
+		'''
 		min_z = self.cloud.height
 		for t in self.interface.node_dict:
 			i_node = self.interface.node_dict[t]
@@ -482,6 +499,17 @@ class landscape:
 				if c_node.z == min_z:
 					i_node.add_successor(c_node)
 					c_node.add_successor(i_node)
+		'''
+		min_z = self.cloud.height
+		for t in self.interface.node_dict:
+			i_nodes = self.interface.node_dict[t]
+			for i_node in i_nodes:
+				c_node_list = self.cloud.tile_node_dict[t]
+				for c_node in c_node_list:
+					if c_node.z == min_z:
+						i_node.add_successor(c_node)
+						c_node.add_successor(i_node)
+
 
 # a single layer to connect the ground to the cloud
 class interface:
@@ -492,15 +520,31 @@ class interface:
 
 	#generates the interfaces nodes
 	def generate_nodes(self):
+		'''
 		for t in self.landscape.tile_dict.values():
 			if t.flyable:
 				if len(t.exitnodelist) > 0:
 					n = node(t.x, t.y, self.height)
 					n.add_category(Category.interface)
 					self.node_dict[t] = n
+		'''
+		for t in self.landscape.tile_dict.values():
+			if t.flyable:
+				if len(t.exitnodelist) > 0:
+					temp_list =[]
+					for n in t.node_list:
+						if n.category == Category.park or n.category == Category.land:
+							x = n.x
+							y = n.y
+							n2 = node(x, y, self.height)
+							n2.add_category(Category.interface)
+							temp_list.append(n2)
+					self.node_dict[t] = temp_list
+
 
 	#connects the interface to the ground
 	def connect_to_land(self):
+		'''
 		for t in self.landscape.tile_dict.values():
 			if t in self.node_dict:
 				n = self.node_dict[t]
@@ -508,6 +552,16 @@ class interface:
 					if n2.category != Category.mark:
 						n.add_successor(n2)
 						n2.add_successor(n)
+		'''
+		for t in self.landscape.tile_dict.values():
+			if t in self.node_dict:
+				ns = self.node_dict[t]
+				for n1 in ns:
+					for n2 in t.node_list:
+						if n2.category != Category.mark:
+							if n1.x == n2.x and n1.y == n2.y:
+								n1.add_successor(n2)
+								n2.add_successor(n1)
 
 #hovering multilayer, multinode per tile node-cloud(density represents how many nodes across a cell)
 class cloud:
@@ -784,7 +838,7 @@ def generate_random_world(num_long, num_wide, length, width, density):
 
 duckytown_num_long = 6
 duckytown_num_wide = 10
-duckytown_tile_size = 1
+duckytown_tile_size = 2
 non_fly_list = [(0,2),(0,3),(0,4),(0,5), (1,1), (3,7),(3,3), (4,3), (1,0),(2,0),(2,1)]
 #non_fly_list = []
 duckytown_pre_dict = {(0,0):['N','E'], (0,1):['S','E'], (0,2): [], (0,3):[], 
@@ -814,11 +868,11 @@ for co in duckytown_pre_dict.keys():
 
 duckytown = landscape(duckytown_num_long, duckytown_num_wide, duckytown_dict)
 
-d_interface_height = 2
-d_cloud_height = 4
-d_num_cloud_layers = 2
-d_cloud_layer_dist = 1
-d_cloud_density = 2
+d_interface_height = 1.5
+d_cloud_height = 2
+d_num_cloud_layers = 1
+d_cloud_layer_dist = .5
+d_cloud_density = 3
 duckytown.generate_interface_and_cloud(d_interface_height, d_cloud_height, d_num_cloud_layers, d_cloud_layer_dist, d_cloud_density)
 #run_full_search(duckytown)
 #duckytown.display()
@@ -835,6 +889,12 @@ edges = info[1]
 ID_dict = {}
 category_dict = {}
 
+num_parking = 0
+num_mark = 0
+num_land = 0
+num_interface = 0
+num_cloud = 0
+
 with open('nodes.csv', 'wb') as csvfile:
 	node_writer = csv.writer(csvfile)
 	for n in info[0]:
@@ -845,6 +905,23 @@ with open('nodes.csv', 'wb') as csvfile:
 		ID_dict[ID] = (x,y,z)
 		category_dict[ID] = n.category
 		node_writer.writerow([str(ID), str(x), str(y), str(z)])
+		if n.category == Category.park:
+			num_parking += 1
+		elif n.category == Category.mark:
+			num_mark += 1
+		elif n.category == Category.land:
+			num_land += 1
+		elif n.category == Category.interface:
+			num_interface += 1
+		elif n.category == Category.cloud:
+			num_cloud += 1
+
+print('num parking: '+str(num_parking))
+print('num mark: '+str(num_mark))
+print('num land: '+str(num_land))
+print('num interface: '+str(num_interface))
+print('num cloud: '+str(num_cloud))
+
 with open('edges.csv', 'wb') as csvfile:
 	edge_writer = csv.writer(csvfile)
 	for e in info[1]:
@@ -895,9 +972,9 @@ for ID in ID_dict:
 	coor = ID_dict[ID]
 	coordinate_list[ID] = coor
 	w_list[ID] = int(coor[0])
-	x_list[ID] = int(coor[0]*1000 + 1000)
-	y_list[ID] = int(coor[1]*1000 + 1000)
-	z_list[ID] = int(coor[2]*1000 + 1000)
+	x_list[ID] = int(coor[0]*1000)
+	y_list[ID] = int(coor[1]*1000)
+	z_list[ID] = int(coor[2]*1000)
 	cat = category_dict[ID]
 	category_list[ID] = int(cat)
 

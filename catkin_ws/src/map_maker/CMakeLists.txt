@@ -48,7 +48,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    Num.msg
-#   Message2.msg
+   HiPath.msg
+   SimPos.msg
  )
 
 ## Generate services in the 'srv' folder

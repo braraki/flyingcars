@@ -3,6 +3,7 @@
 import rospy
 from std_msgs.msg import String
 from map_maker.srv import *
+from map_maker.msg import *
 
 from interactive_markers.interactive_marker_server import *
 from visualization_msgs.msg import *
@@ -18,8 +19,14 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
-
-interface_height = None
+#thickness of the tile (generally)
+tilethickness = .05
+#thickness of the road
+roadthickness = .05
+#represents how close to the edge of the tile the parking spot will be
+#at a roadratio around .75, a parking frac of 1.0 is needed
+#at a roadratio of .5, a parking frac of .5 is most asthetically pleasing (in my opinion)
+parking_frac = 1
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -32,7 +39,7 @@ class Category(Enum):
 	interface = 3
 	cloud = 4
 
-static_category_dict = {0: Category.mark, 1: Category.park, 2: Category.land, 3: Category.interface, 4: Category.cloud}
+static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud}
 
 class visual_node:
 	def __init__(self, ID, x, y, z, category = None, successors = [], precursors = []):
@@ -48,6 +55,7 @@ class visual_node:
 		self.precursors = precursors[:]
 		if category != None:
 			self.categorize(category)
+		self.tile = None
 
 	def add_successor(self, node):
 		if node not in self.successors:
@@ -88,6 +96,9 @@ class visual_node:
 		int_marker.controls.append(n_control)
 
 		return(int_marker)
+
+	def assign_tile(self, t):
+		self.tile = t
 
 class visual_edge:
 	def __init__(self, ID, node1ID, node2ID, node1 = None, node2 = None):
@@ -196,64 +207,6 @@ class node_scape:
 			n2.add_precursor(n1)
 		print('edge work over')
 
-	'''
-	def categorize_node_iteration(self):
-		maxlandID = 0
-		global interface_height
-		nl = self.node_list[:]
-		for node in nl:
-			if node.category == None:
-				#defining land nodes
-				if node.z == 0:
-					node.categorize('land')
-					if node.ID > maxlandID:
-						maxlandID = node.ID
-				elif node.ID < maxlandID:
-					node.categorize('land')
-				#defining interface node
-				#node.z >0 and ID not less than current maxlandID, helipads could have made it through
-				elif interface_height != None:
-						if node.z == interface_height:
-							node.categorize('interface')
-						elif node.z > interface_height:
-							node.categorize('cloud')
-						else:
-							node.categorize('land')
-				else:
-					adjacencys = node.successors
-					for n in adjacencys:
-						if n.category == 'land':
-							node.categorize('interface')
-							if interface_height == None:
-								interface_height = node.z
-							break
-						if n.category == 'interface' and node.z<interface_height:
-							node.categorize('land')
-							break
-
-	def check_categorized(self):
-		for node in self.node_list:
-			if node.category == None:
-				return(False)
-		return(True)
-
-	def categorize_nodes(self):
-		print('starting')
-		max_attempts = 10
-		attempt = 0
-		while attempt < max_attempts:
-			print(attempt)
-			self.categorize_node_iteration()
-			if self.check_categorized():
-				break
-			attempt += 1
-
-	'''
-
-	def build_tiles(self):
-		for node in self.node_list:
-			t = 1
-
 	def construct(self):
 		rospy.init_node("simple_marker")
 		#rospy.Subscriber('commands', String, self.interpret)
@@ -276,7 +229,7 @@ class node_scape:
 		for e in self.edge_list:
 			node1 = e.node1
 			node2 = e.node2
-			if True:#node1.category == 'land' and node2.category == 'land':
+			if node1.category != Category.cloud or node2.category != Category.cloud:
 				int_marker = e.construct(int_marker)
 		
 
@@ -285,115 +238,402 @@ class node_scape:
 		server.applyChanges()
 		rospy.spin()
 
-	'''
-	def analyse(self):
-		x_size = None
-		y_size = None
-		max_land_x = 0
-		max_land_y = 0
-		max_interface_x = 0
-		max_interface_y = 0
-		max_x = None
-		max_y = None
-		interface_node_dict = {}
-		interface_x = []
-		interface_y = []
-		ground_node_dict = {}
-		for n in self.node_list:
-			if n.category == 'land':
-				ground_node_dict[(n.x, n.y, n.z)] = n
-				if n.x > max_land_x:
-					max_land_x = n.x
-				if n.y > max_land_y:
-					max_land_y = n.y
-			elif n.category == 'interface':
-				interface_node_dict[(n.x, n.y, n.z)] = n
-				if n.x not in interface_x:
-					interface_x.append(n.x)
-				if n.y not in interface_y:
-					interface_y.append(n.y)
-				if n.x > max_interface_x:
-					max_interface_x = n.x
-				if n.y > max_interface_y:
-					max_interface_y = n.y
-		interface_x = sorted(interface_x)
-		interface_y = sorted(interface_y)
-		x_distances = []
-		y_distances = []
-		for num in range(len(interface_x)-1):
-			x1 = interface_x[num]
-			x2 = interface_x[num + 1]
-			x_distances.append(x2 - x1)
-		for num in range(len(interface_y)-1):
-			y1 = interface_y[num]
-			y2 = interface_y[num + 1]
-			y_distances.append(y2 - y1)
-		x_distances = sorted(x_distances)
-		y_distances = sorted(y_distances)
-		x_size = test_value(x_distances)
-		y_size = test_value(y_distances)
-		print(x_size)
-		print(y_size)
-		if max_interface_x + x_size*.5 >= max_land_x:
-			max_x = max_interface_x
-			print('if')
-		else:
-			print('else')
-			unfound = True
-			num = max_interface_x/float(x_size)
-			while unfound:
-				if (num+.5)*x_size > max_land_x:
-					unfound = False
-					max_x = (num)*x_size
-				num += 1
-
-		if max_interface_y + y_size*.5 >= max_land_y:
-			max_y = max_interface_y
-			print('if')
-		else:
-			print('else')
-			unfound = True
-			num = max_interface_y/float(y_size)
-			while unfound:
-				if (num+.5)*y_size > max_land_y:
-					unfound = False
-					max_y = (num)*y_size
-				num += 1
-		print(max_x)
-		print(max_y)
-
-def test_value(distances):
-	distances = sorted(distances)
-	v = distances[0]
-	denom = 1.0
-	unfound = True
-	while unfound:
-		current_v = v/denom
-		unfound = False
-		for d in distances:
-			if d%current_v != 0:
-				unfound = True
-				break
-		denom += 1
-	return(current_v)
-
-	'''
-
-
-
-
-
-
-
 class building_scape:
-	def __init__(self):
-		t = 1
+	def __init__(self, node_scape):
+		self.node_scape = node_scape
+		self.tile_dict = {}
+
+	def build_tiles(self):
+		markxs = []
+		markys = []
+		z_dict = {}
+		base_road_ratio = None
+		for n in self.node_scape.node_list:
+			if n.category == Category.mark:
+				if n.x not in markxs:
+					markxs.append(n.x)
+				if n.y not in markys:
+					markys.append(n.y)
+				z_dict[(n.x, n.y)] = n.z
+		markxs = sorted(markxs)
+		markys = sorted(markys)
+		length = markxs[1] - markxs[0]
+		width = markys[1] - markys[0]
+		for x in markxs:
+			c_x = x + length*.5
+			for y in markys:
+				c_y = y + length*.5
+				z = z_dict[(x, y)]
+				t = tile(c_x, c_y, z, length, width)
+				self.tile_dict[(c_x, c_y)] = t
+				for n in self.node_scape.node_list:
+					if t.test_node(n):
+						t.assign_node(n)
+		for t in self.tile_dict.values():
+			t.build_exitnodelist()
+			t.build_flyable(self.node_scape.node_list)
+			if base_road_ratio == None:
+				base_road_ratio = t.return_road_ratio()
+		if base_road_ratio == None:
+			base_road_ratio = .5 #just as a default
+		for t in self.tile_dict.values():
+			t.assign_road_ratio(base_road_ratio)
+
+	def construct_path(self, p):
+		int_marker2 = InteractiveMarker()
+		int_marker2.header.frame_id = "base_link"
+		int_marker2.name = "my_marker2"
+		for index in range(len(p)-1):
+			ID1 = p[index]
+			ID2 = p[index + 1]
+			n1 = self.node_scape.node_ID_dict[ID1]
+			n2 = self.node_scape.node_ID_dict[ID2]
+
+			color = (255, 0, 0)
+			a_marker = Marker()
+			a_marker.type = Marker.ARROW
+			a_marker.scale.x = .05*2
+			a_marker.scale.y = .1*2
+			a_marker.scale.z = .1*2
+			(a_marker.color.r, a_marker.color.g, a_marker.color.b) = color
+			a_marker.color.a = 1
+			start = Point()
+			end = Point()
+
+			start.x = n1.x
+			start.y = n1.y
+			start.z = n1.z
+			end.x = n2.x
+			end.y = n2.y
+			end.z = n2.z
+
+			a_marker.points.append(start)
+			a_marker.points.append(end)
+				
+			a_control = InteractiveMarkerControl()
+			a_control.always_visible = True
+			a_control.markers.append( a_marker )
+			int_marker2.controls.append(a_control)
+
+		self.server.insert(int_marker2, processFeedback)
+
+		self.server.applyChanges()
+
+	def construct_crazyflie(self, pos):
+		int_marker3 = InteractiveMarker()
+		int_marker3.header.frame_id = "base_link"
+		int_marker3.name = "my_marker3"
+
+		cf_marker = Marker()
+		cf_marker.type = Marker.CUBE
+		cf_marker.scale.x = .25
+		cf_marker.scale.y = .25
+		cf_marker.scale.z = .25
+
+		cf_marker.color.r = 0.0
+		cf_marker.color.g = 0.0
+		cf_marker.color.b = 1.0
+		cf_marker.color.a = 1.0
+
+		cf_marker.pose.position.x = pos[0]
+		cf_marker.pose.position.y = pos[1]
+		cf_marker.pose.position.z = pos[2]
+		
+		cf_control = InteractiveMarkerControl()
+		cf_control.always_visible = True
+		cf_control.markers.append( cf_marker )
+		int_marker3.controls.append(cf_control)
+
+		self.server.insert(int_marker3, processFeedback)
+
+		self.server.applyChanges()
+
+	def respond(self, data):
+		rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
+		p = data.path
+		self.construct_path(p)
+
+	def pos_respond(self, data):
+		x = data.x/1000.0
+		y = data.y/1000.0
+		z = data.z/1000.0
+		self.construct_crazyflie((x, y, z))
+
+	def construct(self):
+		#self.node_scape.construct()
+		
+		rospy.init_node("simple_marker")
+
+		self.server = InteractiveMarkerServer("simple_marker")
+		
+		rospy.Subscriber('path_topic', HiPath, self.respond)
+		rospy.Subscriber('SimPos_topic', SimPos, self.pos_respond)
+		
+		
+		# create an interactive marker for our server
+		int_marker = InteractiveMarker()
+		int_marker.header.frame_id = "base_link"
+		int_marker.name = "my_marker"
+
+		for n in self.node_scape.node_list:
+			if n.category != Category.mark:
+				int_marker = n.construct(int_marker)
+			# 'commit' changes and send to all clients
+		
+		for e in self.node_scape.edge_list:
+			node1 = e.node1
+			node2 = e.node2
+			if node1.category == Category.land or node2.category == Category.land:
+				if node1.category != Category.interface and node2.category != Category.interface:
+					int_marker = e.construct(int_marker)
+		
+		for t in self.tile_dict.values():
+			int_marker = t.construct(int_marker)
+
+
+		self.server.insert(int_marker, processFeedback)
+
+		self.server.applyChanges()
+		rospy.spin()
+		
 
 class tile:
-	def __init__(self, x, y, z):
+	def __init__(self, x, y, z, length, width):
 		self.x = x
 		self.y = y
 		self.z = z
+		self.length = length
+		self.width = width
+		self.land_nodes = []
+		self.park_nodes = []
+		self.exitnodelist = []
+		self.road_ratio = None
+		#flyable default is true
+		self.flyable = True
+
+	def test_node(self, n):
+		if n.category == Category.land or n.category == Category.park:
+			if n.x >= self.x - .5*self.length and n.x <= self.x + .5*self.length:
+				if n.y >= self.y - .5*self.width and n.y <= self.y + .5*self.length:
+					return(True)
+		return(False)
+
+	def assign_node(self, n):
+		if n not in self.land_nodes + self.park_nodes:
+			if n.category == Category.land:
+				self.land_nodes.append(n)
+				n.assign_tile(self)
+			elif n.category == Category.park:
+				self.park_nodes.append(n)
+				n.assign_tile(self)
+
+	def return_road_ratio(self):
+		if 'C' in self.exitnodelist or self.exitnodelist == []:
+			return(None)
+		running_r = 0
+		for n in self.land_nodes:
+			x_dist = abs(n.x - self.x)
+			y_dist = abs(n.y - self.y)
+			x_r = (x_dist*4)/self.length
+			y_r = (y_dist*4)/self.width
+			if x_r >= running_r:
+				running_r = x_r
+			if y_r >= running_r:
+				running_r = y_r
+		if running_r == 0:
+			return(None)
+		print(running_r)
+		return(running_r)
+
+
+
+	def assign_road_ratio(self, ratio):
+		self.road_ratio = ratio
+
+	def build_exitnodelist(self):
+		for ln in self.land_nodes:
+			if 'C' not in self.exitnodelist:
+				self.exitnodelist.append('C')
+			for suc in ln.successors:
+				if suc.category == Category.land:
+					t = suc.tile
+					if t.x > self.x and 'E' not in self.exitnodelist:
+						self.exitnodelist.append('E')
+					elif t.x < self.x and 'W' not in self.exitnodelist:
+						self.exitnodelist.append('W')
+					elif t.y > self.y and 'N' not in self.exitnodelist:
+						self.exitnodelist.append('N')
+					elif t.y < self.y and 'S' not in self.exitnodelist:
+						self.exitnodelist.append('S')
+		if len(self.exitnodelist) > 1:
+			self.exitnodelist.remove('C')
+
+	def build_flyable(self, full_node_list):
+		f = False
+		all_nodes = self.land_nodes + self.park_nodes
+		if len(all_nodes)>0:
+			for n in self.land_nodes + self.park_nodes:
+				suc = n.successors
+				for n2 in suc:
+					if n2.category == Category.interface:
+						f = True
+						break
+		else:
+			for n in full_node_list:
+				if n.category == Category.cloud:
+					if n.x >= self.x - .5*self.length and n.x <= self.x + .5*self.length:
+						if n.y >= self.y - .5*self.width and n.y <= self.y + .5*self.length:
+							f = True
+		self.flyable = f
+
+
+
+
+	def construct(self, int_marker):
+		#base
+		base_marker = Marker()
+		base_marker.type = Marker.CUBE
+		base_marker.scale.x = self.length
+		base_marker.scale.y = self.width
+		base_marker.scale.z = tilethickness + self.z
+
+		if self.flyable:
+			base_marker.color.r = 0.0
+			base_marker.color.g = 1.0
+			base_marker.color.b = 0.0			
+		else:
+			base_marker.color.r = 1.0
+			base_marker.color.g = 0.5
+			base_marker.color.b = 0.0
+		base_marker.color.a = 1.0
+
+		base_marker.pose.position.x = self.x
+		base_marker.pose.position.y = self.y
+		base_marker.pose.position.z = -.5*tilethickness+(-1*roadthickness)+self.z*.5
+		
+		base_control = InteractiveMarkerControl()
+		base_control.always_visible = True
+		base_control.markers.append( base_marker )
+		int_marker.controls.append(base_control)
+
+		#circle
+		if len(self.exitnodelist) > 0:
+			cylinder_marker = Marker()
+			cylinder_marker.type = Marker.CYLINDER
+			cylinder_marker.scale.x = self.road_ratio*self.length
+			cylinder_marker.scale.y = self.road_ratio*self.width
+			cylinder_marker.scale.z = roadthickness
+
+			cylinder_marker.color.r = 0.2
+			cylinder_marker.color.g = 0.2
+			cylinder_marker.color.b = 0.2
+			cylinder_marker.color.a = 1.0
+
+			cylinder_marker.pose.position.x = self.x
+			cylinder_marker.pose.position.y = self.y
+			cylinder_marker.pose.position.z = -.5*roadthickness+self.z
+
+			cylinder_control = InteractiveMarkerControl()
+			cylinder_control.always_visible = True
+			cylinder_control.markers.append( cylinder_marker )
+			int_marker.controls.append(cylinder_control)
+
+		#parking
+		for n in self.park_nodes:
+			cylinder_marker = Marker()
+			cylinder_marker.type = Marker.CYLINDER
+			cylinder_marker.scale.x = (1-self.road_ratio)*self.length*parking_frac
+			cylinder_marker.scale.y = (1-self.road_ratio)*self.width*parking_frac
+			cylinder_marker.scale.z = roadthickness
+
+			cylinder_marker.color.r = 0.2
+			cylinder_marker.color.g = 0.2
+			cylinder_marker.color.b = 0.2
+			cylinder_marker.color.a = 1.0
+			
+			cylinder_marker.pose.position.x = n.x
+			cylinder_marker.pose.position.y = n.y
+			cylinder_marker.pose.position.z = -.5*roadthickness+self.z
+
+			cylinder_control = InteractiveMarkerControl()
+			cylinder_control.always_visible = True
+			cylinder_control.markers.append( cylinder_marker )
+			int_marker.controls.append(cylinder_control)
+
+		#road
+		for letter in self.exitnodelist:
+			new_x = self.x
+			new_y = self.y
+			new_w = self.width
+			new_l = self.length
+			l_frac = .08
+			w_frac = .08
+			if letter != 'C':
+				if letter == 'N':
+					new_y += self.width*.25
+					new_l = self.road_ratio*self.length
+					new_w = self.width*.5
+					w_frac = .5
+				if letter == 'S':
+					new_y -= self.width*.25
+					new_l = self.road_ratio*self.length
+					new_w = self.width*.5
+					w_frac = .5
+				if letter == 'E':
+					new_x += self.length*.25
+					new_w = self.road_ratio*self.width
+					new_l = self.length*.5
+					l_frac = .5
+				if letter == 'W':
+					new_x -= self.length*.25
+					new_w = self.road_ratio*self.width
+					new_l = self.length*.5
+					l_frac = .5
+				road_marker = Marker()
+				road_marker.type = Marker.CUBE
+				road_marker.scale.x = new_l
+				road_marker.scale.y = new_w
+				road_marker.scale.z = roadthickness
+				road_marker.color.r = 0.2
+				road_marker.color.g = 0.2
+				road_marker.color.b = 0.2
+
+				road_marker.color.a = 1.0
+				road_marker.pose.position.x = new_x
+				road_marker.pose.position.y = new_y
+				road_marker.pose.position.z = -.5*roadthickness+self.z
+
+				road_control = InteractiveMarkerControl()
+				road_control.always_visible = True
+				road_control.markers.append( road_marker )
+				
+				int_marker.controls.append(road_control)
+
+				#yellow line
+				if len(self.exitnodelist)<3:
+					line_marker = Marker()
+					line_marker.type = Marker.CUBE
+					line_marker.scale.x = new_l*l_frac
+					line_marker.scale.y = new_w*w_frac
+					line_marker.scale.z = roadthickness*1.15
+					line_marker.color.r = 1
+					line_marker.color.g = 1
+					line_marker.color.b = 0
+					line_marker.color.a = 1
+					line_marker.pose.position.x = new_x
+					line_marker.pose.position.y = new_y
+					line_marker.pose.position.z = -.5*roadthickness+self.z
+
+					line_control = InteractiveMarkerControl()
+					line_control.always_visible = True
+					line_control.markers.append( line_marker )
+
+					int_marker.controls.append(line_control)
+
+		return(int_marker)
+
+
+
 
 #ns = node_scape('nodes.csv', 'edges.csv')
 #ns.analyse()
@@ -413,8 +653,6 @@ def map_maker_client():
 		resp = func()
 		print('recieved')
 		category_list = resp.category_list
-		print(resp.category_list)
-		print(type(resp.category_list))
 		x_list = resp.x_list
 		y_list = resp.y_list
 		z_list = resp.z_list
@@ -423,15 +661,18 @@ def map_maker_client():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		for ID in range(num_IDs):
-			x = (x_list[ID] - 1000)/1000.0
-			y = (y_list[ID] - 1000)/1000.0
-			z = (z_list[ID] - 1000)/1000.0
+			x = (x_list[ID])/1000.0
+			y = (y_list[ID])/1000.0
+			z = (z_list[ID])/1000.0
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
 		#print(info_dict)
 		ns = node_scape(info_dict, A, num_IDs)
-		ns.construct()
+		#ns.construct()
+		bs = building_scape(ns)
+		bs.build_tiles()
+		bs.construct()
 	except rospy.ServiceException, e:
 		print("service call failed")
 
