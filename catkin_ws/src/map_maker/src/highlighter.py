@@ -21,7 +21,9 @@ import numpy as np
 
 
 
-
+z_coefficient = 3
+cf_num = 10
+init_wait_time = .2
 
 class Category(Enum):
 	mark = 0
@@ -79,124 +81,110 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				agenda.push(child, child.cost+heuristic(child_state))
 	return None
 
-z_coefficient = 3
-def find_path(ID1, ID2, adjacency_array, info_dict):
-	(x2, y2, z2) = info_dict[ID2][0]
-	def successors(id):
-		(x1, y1, z1) = info_dict[id][0]
-		sucs = []
-		row = adjacency_array[id]
-		for (ID2, value) in enumerate(row):
-			if value == 1:
-				(fx, fy, fz) = info_dict[ID2][0]
-				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
-				sucs.append((ID2, dist_traveled))
-		return(sucs)
-	def goal_test(id):
-		return  ID2== id
-	def dist(id):
-		(x1, y1, z1) = info_dict[id][0]
-		dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
-		return(dist)
-	return(a_star(successors, ID1, goal_test, dist))
+class system:
+	def __init__(self, adj_array, info_dict, cf_ID, pub):
+		self.adj_array = adj_array
+		self.info_dict = info_dict
+		self.cf_ID = cf_ID
+		self.pub = pub
+		self.end_pos = None
+		self.cf_pos = None
+		self.park_IDs = []
+		for id in self.info_dict:
+			info = self.info_dict[id]
+			c = info[1]
+			if c == Category.park:
+				self.park_IDs.append(id)
+	def generate_random_path(self):
+		if self.end_pos == None:
+			ID1 = random.choice(self.park_IDs)
+		else:
+			for id in self.info_dict:
+				if self.info_dict[id][0] == self.end_pos:
+					ID1 = id
+					break
+		unfound = True
+		while unfound:
+			ID2 = random.choice(self.park_IDs)
+			if ID2 != ID1:
+				unfound = False
+		self.end_pos = self.info_dict[ID2][0]
+		p = self.find_path(ID1, ID2)
+		return(p)
 
-end_pos = None
-pub = None
-adj_array = None
-info_dict = {}
+	def find_path(self, ID1, ID2):
+		(x2, y2, z2) = self.info_dict[ID2][0]
+		def successors(id):
+			(x1, y1, z1) = self.info_dict[id][0]
+			sucs = []
+			row = self.adj_array[id]
+			for (ID2, value) in enumerate(row):
+				if value == 1:
+					(fx, fy, fz) = self.info_dict[ID2][0]
+					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+					sucs.append((ID2, dist_traveled))
+			return(sucs)
+		def goal_test(id):
+			return  ID2== id
+		def dist(id):
+			(x1, y1, z1) = self.info_dict[id][0]
+			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
+			return(dist)
+		return(a_star(successors, ID1, goal_test, dist))
 
-def generate_random_path(adjacency_array, info_dict):
-	global end_pos
-	park_IDs = []
-	for id in info_dict:
-		info = info_dict[id]
-		c = info[1]
-		if c == Category.park:
-			park_IDs.append(id)
-	if end_pos == None:
-		ID1 = random.choice(park_IDs)
-	else:
-		for id in info_dict:
-			if info_dict[id][0] == end_pos:
-				ID1 = id
-				break
-	unfound = True
-	while unfound:
-		ID2 = random.choice(park_IDs)
-		if ID2 != ID1:
-			unfound = False
-	p = find_path(ID1, ID2, adjacency_array, info_dict)
-	return(p)
+	def update_cf_pos(self, pos):
+		#print('position updated: '+str(pos))
+		self.cf_pos = pos
+		if self.is_finished():
+			self.publish_new_path()
 
+	def is_finished(self):
+		if self.cf_pos == self.end_pos:
+			return(True)
+		if self.end_pos != None and self.cf_pos != None:
+			(x1, y1, z1) = self.cf_pos
+			(x2, y2, z2) = self.end_pos
+			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)
+			#print(dist)
+			return(dist < .02)
+		return(False)
 
+	def publish_new_path(self):
+		p = self.generate_random_path()
+		self.pub.publish(cf_num, self.cf_ID, p)
+		print('published')
 
-def get_postion(data):
-	global end_pos
-	global pub
-	global adj_array
-	global info_dict
-	x = data.x/1000.0
-	y = data.y/1000.0
-	z = data.z/1000.0
-	crazyflie_position = (x, y, z)
-	if is_finished(crazyflie_position, end_pos):
-		p = generate_random_path(adj_array, info_dict)
-		if p != None:
-			print(p)
-			pub.publish(p)
-			end_ID = p[len(p)-1]
-			end_pos = info_dict[end_ID][0]
+class full_system:
+	def __init__(self, adj_array, info_dict):
+		self.adj_array = adj_array
+		self.info_dict = info_dict
+		self.system_list = []
+		self.pub = rospy.Publisher('path_topic', HiPath, queue_size = 10)
+		self.runner()
 
+	def runner(self):
+		for ID in range(cf_num):
+			sys = system(self.adj_array, self.info_dict, ID, self.pub)
+			self.system_list.append(sys)
+		rospy.init_node('highlighter', anonymous = True)
+		rospy.Subscriber('SimPos_topic', SimPos, self.pos_update)
+		for sys in self.system_list:
+			sys.publish_new_path()
+			time.sleep(init_wait_time)
+		rospy.spin()
 
-def publish_paths(delay, adjacency_array, info_dict):
-	global pub
-	num = 0
-	pub = rospy.Publisher('path_topic', HiPath, queue_size = 10)
-	rospy.init_node('highlighter', anonymous=True)
-	rate = rospy.Rate(1/float(delay)) # 10hz
-	while not rospy.is_shutdown():
-		print(num)
-		p = generate_random_path(adjacency_array, info_dict)
-		if p != None:
-			print(p)
-			pub.publish(p)
-		rate.sleep()
-		num += 1
-
-def is_finished(cf_pos, end_pos):
-	if end_pos == None or cf_pos == None:
-		return(True)
-	(x1, y1, z1) = cf_pos
-	(x2, y2, z2) = end_pos
-	dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)
-	#print(dist)
-	return(dist < .02)
-
-def publish_path():
-	global end_pos
-	global adj_array
-	global info_dict
-	global pub
-	pub = rospy.Publisher('path_topic', HiPath, queue_size = 10)
-	rospy.init_node('highlighter', anonymous=True)
-	rospy.Subscriber('SimPos_topic', SimPos, get_postion)
-	end_pos = None
-	if not rospy.is_shutdown():
-		p = generate_random_path(adj_array, info_dict)
-		if p != None:
-			print(p)
-			pub.publish(p)
-			end_ID = p[len(p)-1]
-			end_pos = info_dict[end_ID][0]
-	rospy.spin()
-
-delay = 10
-
-info_dict = {}
+	def pos_update(self, data):
+		x_list = data.x
+		y_list = data.y
+		z_list = data.z
+		for id in range(len(x_list)):
+			sys = self.system_list[id]
+			x = x_list[id]/1000.0
+			y = y_list[id]/1000.0
+			z = z_list[id]/1000.0
+			sys.update_cf_pos((x, y, z))
 
 def map_maker_client():
-	global adj_array
-	global info_dict
 	rospy.wait_for_service('send_map')
 	try:
 		print('calling')
@@ -212,6 +200,7 @@ def map_maker_client():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		adj_array = A
+		info_dict = {}
 		for ID in range(num_IDs):
 			x = (x_list[ID])/1000.0
 			y = (y_list[ID])/1000.0
@@ -219,8 +208,8 @@ def map_maker_client():
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
-		#publish_paths(delay, A, info_dict)
-		publish_path()
+		fs = full_system(A, info_dict)
+		fs.runner()
 	except rospy.ServiceException, e:
 		print("service call failed")
 

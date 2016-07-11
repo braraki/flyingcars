@@ -8,6 +8,7 @@ from map_maker.msg import *
 from interactive_markers.interactive_marker_server import *
 from visualization_msgs.msg import *
 from geometry_msgs.msg import Point
+#from crazyflie_description import crazyflie2
 
 import math
 import matplotlib.pyplot as plt
@@ -242,6 +243,8 @@ class building_scape:
 	def __init__(self, node_scape):
 		self.node_scape = node_scape
 		self.tile_dict = {}
+		self.crazyflie_list = []
+		self.cf_num = None
 
 	def build_tiles(self):
 		markxs = []
@@ -279,6 +282,7 @@ class building_scape:
 		for t in self.tile_dict.values():
 			t.assign_road_ratio(base_road_ratio)
 
+	'''
 	def construct_path(self, p):
 		int_marker2 = InteractiveMarker()
 		int_marker2.header.frame_id = "base_link"
@@ -348,16 +352,40 @@ class building_scape:
 
 		self.server.applyChanges()
 
+
+		
+		rob_marker = RobotModel()
+		rob_marker.header.frame_id = "base_link"
+		rob_marker.name = "my_marker3"
+		'''
+
+
 	def respond(self, data):
-		rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
+		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
+		if self.cf_num == None:
+			self.cf_num = data.num_IDs
+			self.crazyflie_list = [None]*self.cf_num
 		p = data.path
-		self.construct_path(p)
+		if self.crazyflie_list[data.ID] == None:
+			cf = crazyflie(data.ID, p, self.server, self.node_scape)
+			self.crazyflie_list[data.ID] = cf
+		else:
+			cf = self.crazyflie_list[data.ID]
+			cf.update_path(p)
+		#self.construct_path(p)
+		cf.construct_path()
 
 	def pos_respond(self, data):
-		x = data.x/1000.0
-		y = data.y/1000.0
-		z = data.z/1000.0
-		self.construct_crazyflie((x, y, z))
+		for id in range(len(data.x)):
+			x = data.x[id]/1000.0
+			y = data.y[id]/1000.0
+			z = data.z[id]/1000.0
+			#print((x,y,z))
+			cf = self.crazyflie_list[id]
+			cf.update_flie((x,y,z))
+			cf.construct_flie(False)
+		self.server.applyChanges()
+
 
 	def construct(self):
 		#self.node_scape.construct()
@@ -395,7 +423,100 @@ class building_scape:
 
 		self.server.applyChanges()
 		rospy.spin()
+
+class crazyflie:
+	def __init__(self, ID, path, server, node_scape):
+		self.ID = ID
+		self.path = path
+		self.position = None
+		self.server = server
+		self.node_scape = node_scape
+
+		self.int_marker2 = InteractiveMarker()
+		self.int_marker2.header.frame_id = "base_link"
+		self.int_marker2.name = "my_marker2_cf"+str(self.ID)
+
+		self.int_marker3 = InteractiveMarker()
+		self.int_marker3.header.frame_id = "base_link"
+		self.int_marker3.name = "my_marker3_cf"+str(self.ID)
+
+	def construct_path(self):
+		self.int_marker2 = InteractiveMarker()
+		self.int_marker2.header.frame_id = "base_link"
+		self.int_marker2.name = "my_marker2_cf"+str(self.ID)
+		for index in range(len(self.path)-1):
+			ID1 = self.path[index]
+			ID2 = self.path[index + 1]
+			n1 = self.node_scape.node_ID_dict[ID1]
+			n2 = self.node_scape.node_ID_dict[ID2]
+
+			color = (255, 0, 0)
+			a_marker = Marker()
+			a_marker.type = Marker.ARROW
+			a_marker.scale.x = .05*2
+			a_marker.scale.y = .1*2
+			a_marker.scale.z = .1*2
+			(a_marker.color.r, a_marker.color.g, a_marker.color.b) = color
+			a_marker.color.a = 1
+			start = Point()
+			end = Point()
+
+			start.x = n1.x
+			start.y = n1.y
+			start.z = n1.z
+			end.x = n2.x
+			end.y = n2.y
+			end.z = n2.z
+
+			a_marker.points.append(start)
+			a_marker.points.append(end)
+				
+			a_control = InteractiveMarkerControl()
+			a_control.always_visible = True
+			a_control.markers.append( a_marker )
+			self.int_marker2.controls.append(a_control)
+
+		self.server.insert(self.int_marker2, processFeedback)
+
+		self.server.applyChanges()
+
+	def update_path(self, path):
+		self.path = path
+
+	def construct_flie(self, apply_changes = True):
+		self.int_marker3 = InteractiveMarker()
+		self.int_marker3.header.frame_id = "base_link"
+		self.int_marker3.name = "my_marker3_cf"+str(self.ID)
 		
+		cf_marker = Marker()
+		cf_marker.type = Marker.CUBE
+		cf_marker.scale.x = .25
+		cf_marker.scale.y = .25
+		cf_marker.scale.z = .25
+
+		cf_marker.color.r = 0.0
+		cf_marker.color.g = 0.0
+		cf_marker.color.b = 1.0
+		cf_marker.color.a = 1.0
+
+		cf_marker.pose.position.x = self.position[0]
+		cf_marker.pose.position.y = self.position[1]
+		cf_marker.pose.position.z = self.position[2]
+		
+		cf_control = InteractiveMarkerControl()
+		cf_control.always_visible = True
+		cf_control.markers.append( cf_marker )
+		self.int_marker3.controls.append(cf_control)
+
+		self.server.insert(self.int_marker3, processFeedback)
+		if apply_changes:
+			self.server.applyChanges()
+
+	def update_flie(self, pos):
+		self.position = pos
+
+
+
 
 class tile:
 	def __init__(self, x, y, z, length, width):
