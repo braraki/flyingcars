@@ -232,5 +232,5 @@ def map_maker_client():
 
 if __name__ == "__main__":
 	print('test')
-	rospy.init_node('highlighter', anonymous = False)
+	rospy.init_node('highlighter', anonymous = True)
 	map_maker_client()
