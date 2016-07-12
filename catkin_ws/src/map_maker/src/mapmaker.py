@@ -26,12 +26,16 @@ drone_air_speed = 1
 #used to get edge ID, do not change
 edge_num = 0
 
+waypoint_min_distance = .2
+waypoint_max_distance = .5
+
 class Category(Enum):
 	mark = 0
 	land = 1
 	park = 2
 	interface = 3
 	cloud = 4
+	waypoint = 5
 
 class return_node:
 	def __init__(self, x, y, z, ID, category):
@@ -443,6 +447,15 @@ class landscape:
 			for n in self.cloud.node_dict.values():
 				n.ID = num
 				num += 1
+	'''
+	def build_interface_nodes(self):
+		for t in self.tile_dict:
+			for n1 in t.node_list:
+				waypoints = []
+				for n2 in n.successors:
+					if n2 != n1:
+						
+	'''
 
 	#generates lists of the simple node and edge class that represent the map
 	def get_nodes_and_edges(self):
@@ -885,6 +898,7 @@ info = random_l.get_nodes_and_edges()
 '''
 return_nodes = info[0]
 edges = info[1]
+
 #building csv files, no longer necessary, but I like it
 ID_dict = {}
 category_dict = {}

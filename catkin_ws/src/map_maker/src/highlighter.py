@@ -31,8 +31,9 @@ class Category(Enum):
 	park = 2
 	interface = 3
 	cloud = 4
+	waypoint = 5
 
-static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud}
+static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 ##search
 
 ##this will search through the dictionary returned from a landscape in the 
@@ -95,6 +96,7 @@ class system:
 			c = info[1]
 			if c == Category.park:
 				self.park_IDs.append(id)
+
 	def generate_random_path(self):
 		if self.end_pos == None:
 			ID1 = random.choice(self.park_IDs)

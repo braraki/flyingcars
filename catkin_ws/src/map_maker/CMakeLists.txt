@@ -50,6 +50,7 @@ find_package(catkin REQUIRED COMPONENTS
    Num.msg
    HiPath.msg
    SimPos.msg
+   PassangerIDs.msg
  )
 
 ## Generate services in the 'srv' folder

@@ -39,8 +39,9 @@ class Category(Enum):
 	park = 2
 	interface = 3
 	cloud = 4
+	waypoint = 5
 
-static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud}
+static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
 class visual_node:
 	def __init__(self, ID, x, y, z, category = None, successors = [], precursors = []):
@@ -281,84 +282,6 @@ class building_scape:
 			base_road_ratio = .5 #just as a default
 		for t in self.tile_dict.values():
 			t.assign_road_ratio(base_road_ratio)
-
-	'''
-	def construct_path(self, p):
-		int_marker2 = InteractiveMarker()
-		int_marker2.header.frame_id = "base_link"
-		int_marker2.name = "my_marker2"
-		for index in range(len(p)-1):
-			ID1 = p[index]
-			ID2 = p[index + 1]
-			n1 = self.node_scape.node_ID_dict[ID1]
-			n2 = self.node_scape.node_ID_dict[ID2]
-
-			color = (255, 0, 0)
-			a_marker = Marker()
-			a_marker.type = Marker.ARROW
-			a_marker.scale.x = .05*2
-			a_marker.scale.y = .1*2
-			a_marker.scale.z = .1*2
-			(a_marker.color.r, a_marker.color.g, a_marker.color.b) = color
-			a_marker.color.a = 1
-			start = Point()
-			end = Point()
-
-			start.x = n1.x
-			start.y = n1.y
-			start.z = n1.z
-			end.x = n2.x
-			end.y = n2.y
-			end.z = n2.z
-
-			a_marker.points.append(start)
-			a_marker.points.append(end)
-				
-			a_control = InteractiveMarkerControl()
-			a_control.always_visible = True
-			a_control.markers.append( a_marker )
-			int_marker2.controls.append(a_control)
-
-		self.server.insert(int_marker2, processFeedback)
-
-		self.server.applyChanges()
-
-	def construct_crazyflie(self, pos):
-		int_marker3 = InteractiveMarker()
-		int_marker3.header.frame_id = "base_link"
-		int_marker3.name = "my_marker3"
-
-		cf_marker = Marker()
-		cf_marker.type = Marker.CUBE
-		cf_marker.scale.x = .25
-		cf_marker.scale.y = .25
-		cf_marker.scale.z = .25
-
-		cf_marker.color.r = 0.0
-		cf_marker.color.g = 0.0
-		cf_marker.color.b = 1.0
-		cf_marker.color.a = 1.0
-
-		cf_marker.pose.position.x = pos[0]
-		cf_marker.pose.position.y = pos[1]
-		cf_marker.pose.position.z = pos[2]
-		
-		cf_control = InteractiveMarkerControl()
-		cf_control.always_visible = True
-		cf_control.markers.append( cf_marker )
-		int_marker3.controls.append(cf_control)
-
-		self.server.insert(int_marker3, processFeedback)
-
-		self.server.applyChanges()
-
-
-		
-		rob_marker = RobotModel()
-		rob_marker.header.frame_id = "base_link"
-		rob_marker.name = "my_marker3"
-		'''
-
 
 	def respond(self, data):
 		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
