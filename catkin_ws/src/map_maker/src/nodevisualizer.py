@@ -300,16 +300,17 @@ class building_scape:
 			cf.update_path(p)
 
 	def pos_respond(self, data):
-		for id in range(len(data.x)):
-			x = data.x[id]/1000.0
-			y = data.y[id]/1000.0
-			z = data.z[id]/1000.0
-			#print((x,y,z))
-			if self.crazyflie_list[id] != None:
-				cf = self.crazyflie_list[id]
-				cf.update_flie((x,y,z))
-				cf.construct_flie(False)
-		self.server.applyChanges()
+		if len(self.crazyflie_list) == len(data.x):
+			for id in range(len(data.x)):
+				x = data.x[id]/1000.0
+				y = data.y[id]/1000.0
+				z = data.z[id]/1000.0
+				#print((x,y,z))
+				if self.crazyflie_list[id] != None:
+					cf = self.crazyflie_list[id]
+					cf.update_flie((x,y,z))
+					cf.construct_flie(False)
+			self.server.applyChanges()
 
 
 	def construct(self):
@@ -693,11 +694,11 @@ class tile:
 info_dict = {}
 
 def map_maker_client():
-	rospy.wait_for_service('send_complex_map')
+	rospy.wait_for_service('send_map')
 	try:
 		print('calling')
 		global info_dict
-		func = rospy.ServiceProxy('send_complex_map', MapTalk)
+		func = rospy.ServiceProxy('send_map', MapTalk)
 		resp = func()
 		print('recieved')
 		category_list = resp.category_list
