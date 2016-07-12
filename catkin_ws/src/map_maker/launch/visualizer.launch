@@ -2,12 +2,12 @@
 <launch>
 
   <remap from="simulator/path_topic" to="highlighter/path_topic" />
-  <remap from="nodevisualizer/path_topic" to="highlighter/path_topic" />
+  <remap from="simple_marker/path_topic" to="highlighter/path_topic" />
   <remap from="highlighter/SimPos_topic" to="simulator/SimPos_topic" />
-  <remap from="nodevisualizer/SimPos_topic" to="simulator/SimPos_topic" />
+  <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py"/>
-  <node name="nodevisualizer" pkg="map_maker" type="nodevisualizer.py" />
+  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py" />
   <node name="simulator" pkg="map_maker" type="simulator.py" />
   <node name="highlighter" pkg="map_maker" type="highlighter.py" />
 
