@@ -319,8 +319,8 @@ class building_scape:
 
 		self.server = InteractiveMarkerServer("simple_marker")
 		
-		rospy.Subscriber('path_topic', HiPath, self.respond)
-		rospy.Subscriber('SimPos_topic', SimPos, self.pos_respond)
+		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 		
 		
 		# create an interactive marker for our server
