@@ -78,6 +78,8 @@ class visual_node:
 			self.color = (255, 255, 255)
 		elif category == Category.mark:
 			self.color = (0, 0, 0)
+		elif category == Category.waypoint:
+			self.color = (255, 0, 255)
 
 
 	def construct(self, int_marker):
@@ -292,11 +294,10 @@ class building_scape:
 		if self.crazyflie_list[data.ID] == None:
 			cf = crazyflie(data.ID, p, self.server, self.node_scape)
 			self.crazyflie_list[data.ID] = cf
+			cf.construct_path()
 		else:
 			cf = self.crazyflie_list[data.ID]
 			cf.update_path(p)
-		#self.construct_path(p)
-		cf.construct_path()
 
 	def pos_respond(self, data):
 		for id in range(len(data.x)):
@@ -304,9 +305,10 @@ class building_scape:
 			y = data.y[id]/1000.0
 			z = data.z[id]/1000.0
 			#print((x,y,z))
-			cf = self.crazyflie_list[id]
-			cf.update_flie((x,y,z))
-			cf.construct_flie(False)
+			if self.crazyflie_list[id] != None:
+				cf = self.crazyflie_list[id]
+				cf.update_flie((x,y,z))
+				cf.construct_flie(False)
 		self.server.applyChanges()
 
 
@@ -334,7 +336,7 @@ class building_scape:
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
-			if node1.category == Category.land or node2.category == Category.land:
+			if node1.category != Category.cloud or node2.category != Category.cloud:
 				if node1.category != Category.interface and node2.category != Category.interface:
 					int_marker = e.construct(int_marker)
 		
@@ -404,7 +406,9 @@ class crazyflie:
 		self.server.applyChanges()
 
 	def update_path(self, path):
-		self.path = path
+		if path != self.path:
+			self.path = path
+			self.construct_path()
 
 	def construct_flie(self, apply_changes = True):
 		self.int_marker3 = InteractiveMarker()
@@ -689,11 +693,11 @@ class tile:
 info_dict = {}
 
 def map_maker_client():
-	rospy.wait_for_service('send_map')
+	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
 		global info_dict
-		func = rospy.ServiceProxy('send_map', MapTalk)
+		func = rospy.ServiceProxy('send_complex_map', MapTalk)
 		resp = func()
 		print('recieved')
 		category_list = resp.category_list

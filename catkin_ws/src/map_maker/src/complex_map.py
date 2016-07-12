@@ -33,29 +33,31 @@ class Category(Enum):
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
-min_way_point_d = .2
-ideal_way_point_d = .3
-max_way_point_d = .4
+min_way_point_d = .2	#min does not do anything
+ideal_way_point_d = .6
+max_way_point_d = .4	#max does not do anything
 a_list = []
 
 def update_a_list(dist):
+	print('update')
 	global a_list
 	n = len(a_list) - 1
 	unfound = True
 	while unfound:
 		n += 1
-		denom = float(1/(n+1)+1/(n+2))
+		denom = float(1/float(n+1)+1/float(n+2))
 		a_n = (2*ideal_way_point_d)/denom
 		a_list.append(a_n)
 		if a_n > dist:
-			unfound = True
+			unfound = False
 
 def get_num_waypoints(dist):
+	#print('get num')
 	for i in range(len(a_list)):
 		if a_list[i] >= dist:
 			return(i)
 	update_a_list(dist)
-	get_num_waypoints(dist)
+	return(get_num_waypoints(dist))
 
 def get_new_info(info_dict, adjacency_array):
 	ID_num = len(info_dict)
@@ -64,29 +66,30 @@ def get_new_info(info_dict, adjacency_array):
 	G = nx.DiGraph()
 
 	e_list = []
-	for (ID1, row) in enumerate(adjacency_matrix):
+	for (ID1, row) in enumerate(adjacency_array):
 		pass_1 = False
 		G.add_node(ID1)
-		info1 = info_dict(ID1)
+		info1 = info_dict[ID1]
 		c1 = info1[1]
-		if c1 != Category.land or c1 != Category.park:
+		if c1 != Category.land and c1 != Category.park:
 			pass_1 = True
 		for (ID2, value) in enumerate(row):
 			if value == 1:
 				pass_2 = False
-				info2 = info_dict(ID2)
+				info2 = info_dict[ID2]
 				c2 = info2[1]
-				if c2 != Category.land or c2 != Category.park:
+				if c2 != Category.land and c2 != Category.park:
 					pass_2 = True
 				if pass_1 or pass_2:
 					e_list.append((ID1, ID2))
 				else:
-					(x1, y1, z1) == info1[0]
-					(x2, y2, z2) == info2[0]
+					#print('in')
+					(x1, y1, z1) = info1[0]
+					(x2, y2, z2) = info2[0]
 					dist = ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**.5
 					nw = get_num_waypoints(dist)
 					last_ID = ID1
-					for wp_num in nw:
+					for wp_num in range(nw):
 						wp_x = x1 + ((wp_num + 1)/float(nw + 1))*(x2 - x1)
 						wp_y = y1 + ((wp_num + 1)/float(nw + 1))*(y2 - y1)
 						wp_z = z1 + ((wp_num + 1)/float(nw + 1))*(z2 - z1)
@@ -95,6 +98,7 @@ def get_new_info(info_dict, adjacency_array):
 						new_info_dict[wp_ID] = ((wp_x, wp_y, wp_z), Category.waypoint)
 						e_list.append((last_ID, wp_ID))
 						last_ID = wp_ID
+						#print('made way point')
 					e_list.append((last_ID, ID2))
 
 	for e in e_list:
@@ -104,7 +108,7 @@ def get_new_info(info_dict, adjacency_array):
 	return(new_info_dict, A)
 
 class sender:
-	def __init__(self, info_dict, adjacency_matrix)
+	def __init__(self, info_dict, adjacency_matrix):
 		A2 = adjacency_matrix.flatten()
 		A3 = A2.tolist()
 		A4 = A3[0]
@@ -113,11 +117,11 @@ class sender:
 			self.A5.append(int(fl))
 		#print(A5)
 
-		coordinate_list = [None]*len(ID_dict)
-		self.x_list = [None]*len(ID_dict)
-		self.y_list = [None]*len(ID_dict)
-		self.z_list = [None]*len(ID_dict)
-		self.category_list = [None]*len(ID_dict)
+		coordinate_list = [None]*len(info_dict)
+		self.x_list = [None]*len(info_dict)
+		self.y_list = [None]*len(info_dict)
+		self.z_list = [None]*len(info_dict)
+		self.category_list = [None]*len(info_dict)
 
 		for ID in info_dict:
 			coor = info_dict[ID][0]
@@ -127,7 +131,7 @@ class sender:
 			cat = info_dict[ID][1]
 			self.category_list[ID] = int(cat)
 
-		self.num_nodes = len(ID_dict)
+		self.num_nodes = len(info_dict)
 
 	def response(self, req):
 		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5)

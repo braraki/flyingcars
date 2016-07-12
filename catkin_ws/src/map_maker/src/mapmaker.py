@@ -908,9 +908,11 @@ num_mark = 0
 num_land = 0
 num_interface = 0
 num_cloud = 0
-
+'''
 with open('nodes.csv', 'wb') as csvfile:
 	node_writer = csv.writer(csvfile)
+'''
+if True:
 	for n in info[0]:
 		x = n.x
 		y = n.y
@@ -918,7 +920,7 @@ with open('nodes.csv', 'wb') as csvfile:
 		ID = n.ID
 		ID_dict[ID] = (x,y,z)
 		category_dict[ID] = n.category
-		node_writer.writerow([str(ID), str(x), str(y), str(z)])
+		#node_writer.writerow([str(ID), str(x), str(y), str(z)])
 		if n.category == Category.park:
 			num_parking += 1
 		elif n.category == Category.mark:
@@ -935,7 +937,7 @@ print('num mark: '+str(num_mark))
 print('num land: '+str(num_land))
 print('num interface: '+str(num_interface))
 print('num cloud: '+str(num_cloud))
-
+'''
 with open('edges.csv', 'wb') as csvfile:
 	edge_writer = csv.writer(csvfile)
 	for e in info[1]:
@@ -953,7 +955,7 @@ with open('times.csv', 'wb') as csvfile:
 		co_2 = ID_dict[node2_ID]
 		t = pos_time(co_1, co_2, drone_ground_speed, drone_air_speed)
 		time_writer.writerow([str(ID), str(t)])
-
+'''
 #node_plot(return_nodes, edges)
 '''
 builder()

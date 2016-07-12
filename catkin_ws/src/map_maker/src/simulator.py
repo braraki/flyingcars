@@ -57,9 +57,10 @@ class system:
 		return(loc)
 
 	def new_path(self, path):
-		self.path = path
-		self.spots = analyse(self.path, self.info_dict)
-		self.index = 0
+		if path != self.path:
+			self.path = path
+			self.spots = analyse(self.path, self.info_dict)
+			self.index = 0
 
 
 

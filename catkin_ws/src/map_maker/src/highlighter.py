@@ -19,6 +19,8 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+import thread
+
 
 
 z_coefficient = 3
@@ -96,6 +98,7 @@ class system:
 			c = info[1]
 			if c == Category.park:
 				self.park_IDs.append(id)
+		self.p = None
 
 	def generate_random_path(self):
 		if self.end_pos == None:
@@ -140,6 +143,7 @@ class system:
 		if self.is_finished():
 			self.publish_new_path()
 
+
 	def is_finished(self):
 		if self.cf_pos == self.end_pos:
 			return(True)
@@ -152,9 +156,12 @@ class system:
 		return(False)
 
 	def publish_new_path(self):
-		p = self.generate_random_path()
-		self.pub.publish(cf_num, self.cf_ID, p)
+		self.p = self.generate_random_path()
+		self.pub.publish(cf_num, self.cf_ID, self.p)
 		print('published')
+
+	def publish_old_path(self):
+		self.pub.publish(cf_num, self.cf_ID, self.p)
 
 class full_system:
 	def __init__(self, adj_array, info_dict):
@@ -172,8 +179,15 @@ class full_system:
 		rospy.Subscriber('SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
-			time.sleep(init_wait_time)
+			#time.sleep(init_wait_time)
+		thread.start_new_thread ( self.double_check , ())
 		rospy.spin()
+
+	def double_check(self):
+		while True:
+			for sys in self.system_list:
+				sys.publish_old_path()
+			time.sleep(.1)
 
 	def pos_update(self, data):
 		x_list = data.x
