@@ -67,7 +67,7 @@ class full_system:
 	def __init__(self, info_dict, adjacency_array):
 		self.info_dict = info_dict
 		self.adjacency_array = adjacency_array
-		self.pub = rospy.Publisher('SimPos_topic', SimPos, queue_size = 10)
+		self.pub = rospy.Publisher('~SimPos_topic', SimPos, queue_size = 10)
 		self.go = False
 		self.system_list = []
 		self.x_list = []
@@ -76,8 +76,7 @@ class full_system:
 		self.cf_num = None
 
 	def runner(self):
-		rospy.init_node("sim_node")	
-		rospy.Subscriber('path_topic', HiPath, self.act)
+		rospy.Subscriber('~path_topic', HiPath, self.act)
 		print('in runner')
 		rospy.spin()
 
@@ -150,4 +149,5 @@ def map_maker_client():
 
 if __name__ == "__main__":
 	print('test')
+	rospy.init_node("sim_node")	
 	map_maker_client()

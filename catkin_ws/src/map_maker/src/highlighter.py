@@ -159,15 +159,15 @@ class full_system:
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.system_list = []
-		self.pub = rospy.Publisher('path_topic', HiPath, queue_size = 10)
+		self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
 		self.runner()
 
 	def runner(self):
 		for ID in range(cf_num):
 			sys = system(self.adj_array, self.info_dict, ID, self.pub)
 			self.system_list.append(sys)
-		rospy.init_node('highlighter', anonymous = True)
-		rospy.Subscriber('SimPos_topic', SimPos, self.pos_update)
+		#rospy.init_node('highlighter', anonymous = False)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
 			time.sleep(init_wait_time)
@@ -216,4 +216,5 @@ def map_maker_client():
 
 if __name__ == "__main__":
 	print('test')
+	rospy.init_node('highlighter', anonymous = False)
 	map_maker_client()
