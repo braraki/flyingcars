@@ -1,0 +1,8 @@
+---
+uint8[] category_list
+uint16[] x_list
+uint16[] y_list
+uint16[] z_list
+int16 num_IDs
+uint16[] adjacency_array
+
