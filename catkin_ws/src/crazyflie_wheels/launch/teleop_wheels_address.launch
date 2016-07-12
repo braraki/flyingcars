@@ -2,8 +2,5 @@
 
 <launch>
 	<arg name="veh" />
-  <node name="crazyflie" pkg="crazyflie_wheels" type="assign_address.sh" args="$(arg veh)" />
-
-  </node>
-
+	<node name="crazyflie" pkg="crazyflie_wheels" type="launch_by_name.sh" args="$(arg veh)" />
 </launch>
