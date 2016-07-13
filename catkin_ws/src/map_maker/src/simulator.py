@@ -20,9 +20,9 @@ from enum import Enum
 import numpy as np
 
 import thread
-
-step_dist = .1
-delay = .1
+#arguments
+step_dist = float(rospy.get_param('/simulator/step_dist'))
+delay = float(rospy.get_param('/simulator/delay'))
 
 def analyse(p, info_dict):
 	spots = []

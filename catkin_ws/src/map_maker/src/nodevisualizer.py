@@ -20,14 +20,15 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+#arguments
 #thickness of the tile (generally)
-tilethickness = .05
+tilethickness = float(rospy.get_param('/simple_marker/tilethickness'))
 #thickness of the road
-roadthickness = .05
+roadthickness = float(rospy.get_param('/simple_marker/roadthickness'))
 #represents how close to the edge of the tile the parking spot will be
 #at a roadratio around .75, a parking frac of 1.0 is needed
 #at a roadratio of .5, a parking frac of .5 is most asthetically pleasing (in my opinion)
-parking_frac = 1
+parking_frac = float(rospy.get_param('/simple_marker/parking_frac'))
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -695,11 +696,14 @@ info_dict = {}
 
 def map_maker_client():
 	rospy.wait_for_service('send_map')
+	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
 		global info_dict
 		func = rospy.ServiceProxy('send_map', MapTalk)
 		resp = func()
+		func_complex = rospy.ServiceProxy('send_complex_map', MapTalk)
+		resp_complex = func_complex()
 		print('recieved')
 		category_list = resp.category_list
 		x_list = resp.x_list
@@ -716,8 +720,15 @@ def map_maker_client():
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
+		for ID in range(num_IDs, resp_complex.num_IDs):
+			c = static_category_dict[resp_complex.category_list[ID]]
+			if c == Category.waypoint:
+				x = (resp_complex.x_list[ID])/1000.0
+				y = (resp_complex.y_list[ID])/1000.0
+				z = (resp_complex.z_list[ID])/1000.0
+				info_dict[ID] = ((x, y, z), c)
 		#print(info_dict)
-		ns = node_scape(info_dict, A, num_IDs)
+		ns = node_scape(info_dict, A, resp_complex.num_IDs)
 		#ns.construct()
 		bs = building_scape(ns)
 		bs.build_tiles()

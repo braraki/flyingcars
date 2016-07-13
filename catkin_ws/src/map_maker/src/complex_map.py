@@ -20,8 +20,8 @@ from enum import Enum
 import numpy as np
 
 
-
-
+#parameter
+ideal_way_point_d = float(rospy.get_param('/complex_map/ideal_way_point_d'))
 
 class Category(Enum):
 	mark = 0
@@ -33,9 +33,6 @@ class Category(Enum):
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
-min_way_point_d = .2	#min does not do anything
-ideal_way_point_d = .6
-max_way_point_d = .4	#max does not do anything
 a_list = []
 
 def update_a_list(dist):

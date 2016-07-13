@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="cf_num" default="7"/>
 
   <remap from="simulator/path_topic" to="highlighter/path_topic" />
   <remap from="simple_marker/path_topic" to="highlighter/path_topic" />
@@ -9,11 +10,35 @@
   <remap from="nodevisualizer/send_map" to="mapmaker/send_map" />
   <remap from="simulator/send_map" to="mapmaker/send_map" />
   <remap from="highlighter/send_map" to="mapmaker/send_map" />
+  <remap from="complex_map/send_map" to="mapmaker/send_map" />
 
-  <node name="mapmaker" pkg="map_maker" type="mapmaker.py"/>
-  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py" />
-  <node name="simulator" pkg="map_maker" type="simulator.py" />
-  <node name="highlighter" pkg="map_maker" type="highlighter.py" />
+  <remap from="nodevisualizer/send_complex_map" to="complex_map/send_complex_map" />
+
+  <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
+    <param name="duckytown_road_ratio" value=".75"/>
+    <param name="duckytown_tile_size" value="2"/>
+    <param name="d_interface_height" value="1.5"/>
+    <param name="d_cloud_height" value="2"/>
+    <param name="d_num_cloud_layers" value="1"/>
+    <param name="d_cloud_layer_dist" value="2"/>
+    <param name="d_cloud_density" value="3"/>
+  </node>
+  <node name="complex_map" pkg="map_maker" type="complex_map.py">
+  	<param name="ideal_way_point_d" value=".5"/>
+  </node>
+  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
+  	<param name="tilethickness" value=".1"/>
+  	<param name="roadthickness" value=".05"/>
+  	<param name="parking_frac" value="1"/>
+  </node>
+  <node name="simulator" pkg="map_maker" type="simulator.py">
+  	<param name="step_dist" value=".1"/>
+  	<param name="delay" value=".1"/>
+  </node>
+  <node name="highlighter" pkg="map_maker" type="highlighter.py">
+  	<param name="cf_num" value="$(arg cf_num)"/>
+  	<param name="z_coefficient" value="10"/>
+  </node>
 
 
   <!-- run rviz -->

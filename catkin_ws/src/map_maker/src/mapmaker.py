@@ -16,9 +16,17 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+#imported parameters
+duckytown_road_ratio = float(rospy.get_param('/mapmaker/duckytown_road_ratio'))
+duckytown_tile_size = float(rospy.get_param('/mapmaker/duckytown_tile_size'))
+
+d_interface_height = float(rospy.get_param('/mapmaker/d_interface_height'))
+d_cloud_height = float(rospy.get_param('/mapmaker/d_cloud_height'))
+d_num_cloud_layers = int(rospy.get_param('/mapmaker/d_num_cloud_layers'))
+d_cloud_layer_dist = float(rospy.get_param('/mapmaker/d_cloud_layer_dist'))
+d_cloud_density = int(rospy.get_param('/mapmaker/d_cloud_density'))
+
 #parameters
-tilethickness = .1
-roadthickness = .025
 auto_road_ratio = .5
 drone_ground_speed = 1
 drone_air_speed = 1
@@ -26,8 +34,7 @@ drone_air_speed = 1
 #used to get edge ID, do not change
 edge_num = 0
 
-waypoint_min_distance = .2
-waypoint_max_distance = .5
+
 
 class Category(Enum):
 	mark = 0
@@ -447,15 +454,6 @@ class landscape:
 			for n in self.cloud.node_dict.values():
 				n.ID = num
 				num += 1
-	'''
-	def build_interface_nodes(self):
-		for t in self.tile_dict:
-			for n1 in t.node_list:
-				waypoints = []
-				for n2 in n.successors:
-					if n2 != n1:
-						
-	'''
 
 	#generates lists of the simple node and edge class that represent the map
 	def get_nodes_and_edges(self):
@@ -503,16 +501,6 @@ class landscape:
 
 	#connects interface to cloud
 	def connect_interface_and_cloud(self):
-		'''
-		min_z = self.cloud.height
-		for t in self.interface.node_dict:
-			i_node = self.interface.node_dict[t]
-			c_node_list = self.cloud.tile_node_dict[t]
-			for c_node in c_node_list:
-				if c_node.z == min_z:
-					i_node.add_successor(c_node)
-					c_node.add_successor(i_node)
-		'''
 		min_z = self.cloud.height
 		for t in self.interface.node_dict:
 			i_nodes = self.interface.node_dict[t]
@@ -533,14 +521,6 @@ class interface:
 
 	#generates the interfaces nodes
 	def generate_nodes(self):
-		'''
-		for t in self.landscape.tile_dict.values():
-			if t.flyable:
-				if len(t.exitnodelist) > 0:
-					n = node(t.x, t.y, self.height)
-					n.add_category(Category.interface)
-					self.node_dict[t] = n
-		'''
 		for t in self.landscape.tile_dict.values():
 			if t.flyable:
 				if len(t.exitnodelist) > 0:
@@ -557,15 +537,6 @@ class interface:
 
 	#connects the interface to the ground
 	def connect_to_land(self):
-		'''
-		for t in self.landscape.tile_dict.values():
-			if t in self.node_dict:
-				n = self.node_dict[t]
-				for n2 in t.node_list:
-					if n2.category != Category.mark:
-						n.add_successor(n2)
-						n2.add_successor(n)
-		'''
 		for t in self.landscape.tile_dict.values():
 			if t in self.node_dict:
 				ns = self.node_dict[t]
@@ -664,13 +635,6 @@ class cloud:
 
 
 
-								
-
-
-
-
-
-
 
 #step by step building of a map (probably not going to be used to much)
 #not up to date
@@ -712,42 +676,6 @@ def builder():
 	edges = info[1]
 	node_plot(return_nodes, edges)
 	return(info)
-
-#distance between two nodes, not return nodes
-def node_distance(node1, node2):
-	x_dist = node1.x - node2.x
-	y_dist = node1.y - node2.y
-	z_dist = node1.z - node2.z
-	dist = (x_dist**2 + y_dist**2 + z_dist**2)**.5
-	return(dist)
-
-#time to reach one node from another, not return nodes
-def node_time(node1, node2, speed):
-	dist = node_distance(node1, node2)
-	time = dist/float(speed)
-	return(time)
-
-#distance between two xy or xyz tuples
-def pos_distance(co_1, co_2):
-	x_dist = co_1[0] - co_2[0]
-	y_dist = co_1[1] - co_2[1]
-	z_dist = 0
-	if len(co_1) == 3 and len(co_2) == 3:
-		z_dist = co_1[2] - co_2[2]
-	dist = (x_dist**2+y_dist**2+z_dist**2)**.5
-	return(dist)
-
-#time to reach one coordinate from another
-def pos_time(co_1, co_2, ground_speed, air_speed):
-	dist = pos_distance(co_1, co_2)
-	if len(co_1) == 2 and len(co_2) == 2:
-		time = dist/float(ground_speed)
-	elif co_1[2] == 0 and co_2[2] == 0:
-		time = dist/float(ground_speed)
-	else:
-		time = dist/float(air_speed)
-	return(time)
-
 
 #estimates an angle, used in connecting the nodes together
 #one would have no reason to call this function, but it is necessary for the code to function
@@ -851,7 +779,6 @@ def generate_random_world(num_long, num_wide, length, width, density):
 
 duckytown_num_long = 6
 duckytown_num_wide = 10
-duckytown_tile_size = 2
 non_fly_list = [(0,2),(0,3),(0,4),(0,5), (1,1), (3,7),(3,3), (4,3), (1,0),(2,0),(2,1)]
 #non_fly_list = []
 duckytown_pre_dict = {(0,0):['N','E'], (0,1):['S','E'], (0,2): [], (0,3):[], 
@@ -867,7 +794,6 @@ duckytown_pre_dict = {(0,0):['N','E'], (0,1):['N','S'], (0,2):['S'], (0,3):['E']
 '''
 
 duckytown_dict = {}
-duckytown_road_ratio = .75
 for co in duckytown_pre_dict.keys():
 	exitnodelist = duckytown_pre_dict[co]
 	flyable = True
@@ -881,11 +807,6 @@ for co in duckytown_pre_dict.keys():
 
 duckytown = landscape(duckytown_num_long, duckytown_num_wide, duckytown_dict)
 
-d_interface_height = 1.5
-d_cloud_height = 2
-d_num_cloud_layers = 1
-d_cloud_layer_dist = .5
-d_cloud_density = 3
 duckytown.generate_interface_and_cloud(d_interface_height, d_cloud_height, d_num_cloud_layers, d_cloud_layer_dist, d_cloud_density)
 #run_full_search(duckytown)
 #duckytown.display()
@@ -908,59 +829,31 @@ num_mark = 0
 num_land = 0
 num_interface = 0
 num_cloud = 0
-'''
-with open('nodes.csv', 'wb') as csvfile:
-	node_writer = csv.writer(csvfile)
-'''
-if True:
-	for n in info[0]:
-		x = n.x
-		y = n.y
-		z = n.z
-		ID = n.ID
-		ID_dict[ID] = (x,y,z)
-		category_dict[ID] = n.category
-		#node_writer.writerow([str(ID), str(x), str(y), str(z)])
-		if n.category == Category.park:
-			num_parking += 1
-		elif n.category == Category.mark:
-			num_mark += 1
-		elif n.category == Category.land:
-			num_land += 1
-		elif n.category == Category.interface:
-			num_interface += 1
-		elif n.category == Category.cloud:
-			num_cloud += 1
+for n in info[0]:
+	x = n.x
+	y = n.y
+	z = n.z
+	ID = n.ID
+	ID_dict[ID] = (x,y,z)
+	category_dict[ID] = n.category
+	#node_writer.writerow([str(ID), str(x), str(y), str(z)])
+	if n.category == Category.park:
+		num_parking += 1
+	elif n.category == Category.mark:
+		num_mark += 1
+	elif n.category == Category.land:
+		num_land += 1
+	elif n.category == Category.interface:
+		num_interface += 1
+	elif n.category == Category.cloud:
+		num_cloud += 1
 
 print('num parking: '+str(num_parking))
 print('num mark: '+str(num_mark))
 print('num land: '+str(num_land))
 print('num interface: '+str(num_interface))
 print('num cloud: '+str(num_cloud))
-'''
-with open('edges.csv', 'wb') as csvfile:
-	edge_writer = csv.writer(csvfile)
-	for e in info[1]:
-		ID = e.ID
-		node1_ID = e.node1_ID
-		node2_ID = e.node2_ID
-		edge_writer.writerow([str(ID), str(node1_ID), str(node2_ID)])
-with open('times.csv', 'wb') as csvfile:
-	time_writer = csv.writer(csvfile)
-	for e in info[1]:
-		ID = e.ID
-		node1_ID = e.node1_ID
-		node2_ID = e.node2_ID
-		co_1 = ID_dict[node1_ID]
-		co_2 = ID_dict[node2_ID]
-		t = pos_time(co_1, co_2, drone_ground_speed, drone_air_speed)
-		time_writer.writerow([str(ID), str(t)])
-'''
-#node_plot(return_nodes, edges)
-'''
-builder()
 
-'''
 #networkx
 G = nx.DiGraph()
 for n in return_nodes:

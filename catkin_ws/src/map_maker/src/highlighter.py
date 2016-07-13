@@ -21,11 +21,9 @@ import numpy as np
 
 import thread
 
-
-
-z_coefficient = 3
-cf_num = 10
-init_wait_time = .2
+#arguments
+cf_num = int(rospy.get_param('/highlighter/cf_num'))
+z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
 
 class Category(Enum):
 	mark = 0
@@ -179,7 +177,6 @@ class full_system:
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
-			#time.sleep(init_wait_time)
 		thread.start_new_thread ( self.double_check , ())
 		rospy.spin()
 
