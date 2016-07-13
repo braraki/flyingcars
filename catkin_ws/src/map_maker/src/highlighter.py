@@ -155,11 +155,13 @@ class system:
 
 	def publish_new_path(self):
 		self.p = self.generate_random_path()
-		self.pub.publish(cf_num, self.cf_ID, self.p)
-		print('published')
+		if self.p != None and self.p != []:
+			self.pub.publish(cf_num, self.cf_ID, self.p)
+			print('published')
 
 	def publish_old_path(self):
-		self.pub.publish(cf_num, self.cf_ID, self.p)
+		if self.p != None and self.p != []:
+			self.pub.publish(cf_num, self.cf_ID, self.p)
 
 class full_system:
 	def __init__(self, adj_array, info_dict):

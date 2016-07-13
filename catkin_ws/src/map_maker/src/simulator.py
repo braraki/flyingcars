@@ -21,16 +21,34 @@ import numpy as np
 
 import thread
 #arguments
-step_dist = float(rospy.get_param('/simulator/step_dist'))
+air_step_dist = float(rospy.get_param('/simulator/air_step_dist'))
+ground_step_dist = float(rospy.get_param('/simulator/ground_step_dist'))
 delay = float(rospy.get_param('/simulator/delay'))
+
+class Category(Enum):
+	mark = 0
+	land = 1
+	park = 2
+	interface = 3
+	cloud = 4
+	waypoint = 5
+
+static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+
 
 def analyse(p, info_dict):
 	spots = []
 	for index in range(len(p)-1):
 		ID1 = p[index]
 		ID2 = p[index + 1]
-		(x1, y1, z1) = info_dict[ID1]
-		(x2, y2, z2) = info_dict[ID2]
+		(x1, y1, z1) = info_dict[ID1][0]
+		(x2, y2, z2) = info_dict[ID2][0]
+		c1 = info_dict[ID1][1]
+		c2 = info_dict[ID2][1]
+		if c1 == Category.interface or c1 == Category.cloud or c2 == Category.interface or c2 == Category.cloud:
+			step_dist = air_step_dist
+		else:
+			step_dist = ground_step_dist 
 		dist = ((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)**.5
 		num_divisions = int(dist/step_dist) + 1
 		for d in range(num_divisions):
@@ -139,8 +157,8 @@ def map_maker_client():
 			x = (x_list[ID])/1000.0
 			y = (y_list[ID])/1000.0
 			z = (z_list[ID])/1000.0
-			#print(category_list[ID])
-			info_dict[ID] = (x, y, z)
+			c = static_category_dict[resp.category_list[ID]]
+			info_dict[ID] = ((x, y, z),c)
 		#print(info_dict)
 		fs = full_system(info_dict, A)
 		fs.runner()

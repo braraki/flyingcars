@@ -213,7 +213,6 @@ class node_scape:
 		print('edge work over')
 
 	def construct(self):
-		rospy.init_node("simple_marker")
 		#rospy.Subscriber('commands', String, self.interpret)
 
 		server = InteractiveMarkerServer("simple_marker")
@@ -316,8 +315,6 @@ class building_scape:
 
 	def construct(self):
 		#self.node_scape.construct()
-		
-		rospy.init_node("simple_marker")
 
 		self.server = InteractiveMarkerServer("simple_marker")
 		
@@ -739,4 +736,5 @@ def map_maker_client():
 
 if __name__ == "__main__":
 	print('test')
+	rospy.init_node("simple_marker")
 	map_maker_client()

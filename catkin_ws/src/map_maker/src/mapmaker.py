@@ -17,14 +17,31 @@ from enum import Enum
 import numpy as np
 
 #imported parameters
-duckytown_road_ratio = float(rospy.get_param('/mapmaker/duckytown_road_ratio'))
-duckytown_tile_size = float(rospy.get_param('/mapmaker/duckytown_tile_size'))
+map_road_ratio = float(rospy.get_param('/mapmaker/map_road_ratio'))
+map_tile_size = float(rospy.get_param('/mapmaker/map_tile_size'))
 
-d_interface_height = float(rospy.get_param('/mapmaker/d_interface_height'))
-d_cloud_height = float(rospy.get_param('/mapmaker/d_cloud_height'))
-d_num_cloud_layers = int(rospy.get_param('/mapmaker/d_num_cloud_layers'))
-d_cloud_layer_dist = float(rospy.get_param('/mapmaker/d_cloud_layer_dist'))
-d_cloud_density = int(rospy.get_param('/mapmaker/d_cloud_density'))
+map_interface_height = float(rospy.get_param('/mapmaker/map_interface_height'))
+map_cloud_height = float(rospy.get_param('/mapmaker/map_cloud_height'))
+map_num_cloud_layers = int(rospy.get_param('/mapmaker/map_num_cloud_layers'))
+map_cloud_layer_dist = float(rospy.get_param('/mapmaker/map_cloud_layer_dist'))
+map_cloud_density = int(rospy.get_param('/mapmaker/map_cloud_density'))
+
+
+#imported map parameters
+map_num_long = int(rospy.get_param('/mapmaker/map_num_long'))
+map_num_wide = int(rospy.get_param('/mapmaker/map_num_wide'))
+non_fly_list = rospy.get_param('/mapmaker/non_fly_list')
+map_pre_dict = rospy.get_param('/mapmaker/map_pre_dict')
+
+#converts strings to tuples
+for k in map_pre_dict.keys():
+	map_pre_dict[eval(k)] = map_pre_dict[k]
+	del map_pre_dict[k]
+for index in range(len(non_fly_list)):
+	non_fly_list[index] = eval(non_fly_list[index])
+
+print(non_fly_list)
+print(map_pre_dict)
 
 #parameters
 auto_road_ratio = .5
@@ -635,7 +652,7 @@ class cloud:
 
 
 
-
+'''
 #step by step building of a map (probably not going to be used to much)
 #not up to date
 def builder():
@@ -676,7 +693,7 @@ def builder():
 	edges = info[1]
 	node_plot(return_nodes, edges)
 	return(info)
-
+'''
 #estimates an angle, used in connecting the nodes together
 #one would have no reason to call this function, but it is necessary for the code to function
 def get_rud_angle(dx, dy):
@@ -709,7 +726,7 @@ def node_plot(node_list, edge_list):
 			n2y = n2[1]
 			ax.arrow(n1x, n1y, n2x - n1x, n2y - n1y, head_width = .15, head_length = .35)
 	plt.show()
-
+'''
 #generates a random valid map, does not necessarily have the map fully connected (islands can exist)
 def generate_random_world(num_long, num_wide, length, width, density):
 	l = landscape(num_long, num_wide)
@@ -766,7 +783,7 @@ def generate_random_world(num_long, num_wide, length, width, density):
 		l.fill_tile(t, co)
 	return(l)
 
-
+'''
 
 
 
@@ -775,48 +792,24 @@ def generate_random_world(num_long, num_wide, length, width, density):
 #one can fairly easily use a script to build a landscape and as our landscape will be mostly
 #set, this (or something similar), is probably what we will use to construct the landscape
 
-#slightly modified duckytown
-
-duckytown_num_long = 6
-duckytown_num_wide = 10
-non_fly_list = [(0,2),(0,3),(0,4),(0,5), (1,1), (3,7),(3,3), (4,3), (1,0),(2,0),(2,1)]
-#non_fly_list = []
-duckytown_pre_dict = {(0,0):['N','E'], (0,1):['S','E'], (0,2): [], (0,3):[], 
-(0,4):[], (0,5):[], (0,6):['N','E'], (0,7):['S','N'], (0,8):['S','N'], (0,9):['S','E'], (1,0):['E','W'], (1,1):['W','N'],(1,2):['S','N'], (1,3):['S','N'], (1,4):['S','E'], (1,5):[], (1,6):['E','W','N'], (1,7):['S','N'], (1,8):['S'], (1,9):['E','W'], (2,0):['W','E','N'], (2,1):['S','N'], (2,2):['S','E'], (2,3):[], (2,4):['E','W'], (2,5):[], (2,6):['W','N'], (2,7):['S','N'], (2,8):['S','N'], (2,9):['S','E','W'], (3,0):['E','W'], (3,1):[], (3,2):['W','N'], (3,3):['N','S'], (3,4):['N','S','E','W'], (3,5):['N','S'], (3,6):['N','S'], (3,7):['S','E'],(3,8):[], (3,9):['E','W'], (4,0):['E','W'], (4,1):[], (4,2):['C'], (4,3):[], (4,4):['E','W'], (4,5):[], (4,6):[], (4,7):['E','W'], (4,8):[], (4,9):['E','W'], (5,0):['W','N'], (5,1):['S','N'], (5,2):['S','N'], (5,3):['S','N'], (5,4):['S','N','W'], (5,5):['S','N'], (5,6):['S','N'], (5,7):['S','N','W'], (5,8):['S','N'], (5,9):['S','W']}
-'''
-#every tile type map
-
-duckytown_num_long = 4
-duckytown_num_wide = 4
-duckytown_tile_size = 1
-non_fly_list= [(0,0)]
-duckytown_pre_dict = {(0,0):['N','E'], (0,1):['N','S'], (0,2):['S'], (0,3):['E'], (1,0):['W','N'], (1,1):['S','N','E'], (1,2):['S','E'],(1,3):['E','W'], (2,0):[],(2,1):['E','W','N'], (2,2):['N','S','E','W'], (2,3): ['S','E','W'], (3,0):['N'], (3,1): ['N','W','S'], (3,2):['S','W'],(3,3):['W']}
-'''
-
-duckytown_dict = {}
-for co in duckytown_pre_dict.keys():
-	exitnodelist = duckytown_pre_dict[co]
+map_dict = {}
+for co in map_pre_dict.keys():
+	exitnodelist = map_pre_dict[co]
 	flyable = True
 	elevation = 0
 	if 'C' in exitnodelist:
 		elevation = 1
 	if co in non_fly_list:
 		flyable = False
-	t = tile(duckytown_tile_size, duckytown_tile_size, exitnodelist, flyable, duckytown_road_ratio, co[0]*duckytown_tile_size, co[1]*duckytown_tile_size, elevation)
-	duckytown_dict[co] = t
+	t = tile(map_tile_size, map_tile_size, exitnodelist, flyable, map_road_ratio, co[0]*map_tile_size, co[1]*map_tile_size, elevation)
+	map_dict[co] = t
 
-duckytown = landscape(duckytown_num_long, duckytown_num_wide, duckytown_dict)
+final_map = landscape(map_num_long, map_num_wide, map_dict)
 
-duckytown.generate_interface_and_cloud(d_interface_height, d_cloud_height, d_num_cloud_layers, d_cloud_layer_dist, d_cloud_density)
-#run_full_search(duckytown)
-#duckytown.display()
+final_map.generate_interface_and_cloud(map_interface_height, map_cloud_height, map_num_cloud_layers, map_cloud_layer_dist, map_cloud_density)
 
-info = duckytown.get_nodes_and_edges()
-'''
-random_l = generate_random_world(25, 25, 1, 1, .65)
-random_l.display()
-info = random_l.get_nodes_and_edges()
-'''
+
+info = final_map.get_nodes_and_edges()
 return_nodes = info[0]
 edges = info[1]
 

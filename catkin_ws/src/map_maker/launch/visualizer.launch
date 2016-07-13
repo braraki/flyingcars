@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="cf_num" default="7"/>
+  <arg name="map" default="duckytown_map" />
 
   <remap from="simulator/path_topic" to="highlighter/path_topic" />
   <remap from="simple_marker/path_topic" to="highlighter/path_topic" />
@@ -14,14 +15,15 @@
 
   <remap from="nodevisualizer/send_complex_map" to="complex_map/send_complex_map" />
 
-  <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
-    <param name="duckytown_road_ratio" value=".75"/>
-    <param name="duckytown_tile_size" value="2"/>
-    <param name="d_interface_height" value="1.5"/>
-    <param name="d_cloud_height" value="2"/>
-    <param name="d_num_cloud_layers" value="1"/>
-    <param name="d_cloud_layer_dist" value="2"/>
-    <param name="d_cloud_density" value="3"/>
+  <node name="mapmaker" pkg="map_maker" type="mapmaker.py" output="screen">
+    <param name="map_road_ratio" value=".75"/>
+    <param name="map_tile_size" value="2"/>
+    <param name="map_interface_height" value="1.5"/>
+    <param name="map_cloud_height" value="2"/>
+    <param name="map_num_cloud_layers" value="1"/>
+    <param name="map_cloud_layer_dist" value="2"/>
+    <param name="map_cloud_density" value="3"/>
+    <rosparam command="load" file="$(find map_maker)/config/$(arg map).yaml" />
   </node>
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
   	<param name="ideal_way_point_d" value=".5"/>
@@ -32,7 +34,8 @@
   	<param name="parking_frac" value="1"/>
   </node>
   <node name="simulator" pkg="map_maker" type="simulator.py">
-  	<param name="step_dist" value=".1"/>
+  	<param name="air_step_dist" value=".2"/>
+  	<param name="ground_step_dist" value=".1"/>
   	<param name="delay" value=".1"/>
   </node>
   <node name="highlighter" pkg="map_maker" type="highlighter.py">
