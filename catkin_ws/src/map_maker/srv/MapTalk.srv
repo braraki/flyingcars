@@ -1,5 +1,9 @@
 ---
 #map information
+#for category_list, x_list, y_list, and z_list, the given index represents the 
+#information for the node with that ID, works similarly for the adjacency array
+#though that has been flattened
+#the num IDs represents the number of nodes and thus the number of node IDs
 int32[] category_list
 int32[] x_list
 int32[] y_list

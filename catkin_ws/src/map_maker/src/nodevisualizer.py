@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import time
 import random
 
-import csv
 import networkx as nx
 from enum import Enum
 import numpy as np
