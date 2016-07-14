@@ -11,7 +11,6 @@ import math
 import matplotlib.pyplot as plt
 import time
 import random
-import csv
 import networkx as nx
 from enum import Enum
 import numpy as np
@@ -726,7 +725,7 @@ def node_plot(node_list, edge_list):
 			n2y = n2[1]
 			ax.arrow(n1x, n1y, n2x - n1x, n2y - n1y, head_width = .15, head_length = .35)
 	plt.show()
-'''
+
 #generates a random valid map, does not necessarily have the map fully connected (islands can exist)
 def generate_random_world(num_long, num_wide, length, width, density):
 	l = landscape(num_long, num_wide)
@@ -741,6 +740,8 @@ def generate_random_world(num_long, num_wide, length, width, density):
 	iterations = 0
 	while current_density < density:
 		co_1 = random.choice(coop_list)
+		if len(tile_dict[co_1])>2:
+			co_1 = random.choice(coop_list)
 		letter = random.choice(letters)
 		current_list = tile_dict[co_1]
 		if letter == 'N' and co_1[1]<(num_wide-1) and 'N' not in current_list:
@@ -767,7 +768,7 @@ def generate_random_world(num_long, num_wide, length, width, density):
 			next_list = tile_dict[(co_1[0]-1, co_1[1])]
 			next_list.append('E')
 			tile_dict[(co_1[0]-1, co_1[1])] = next_list
-		elif letter == 'C' and 'C' not in current_list:
+		elif letter == 'C' and current_list == []:
 			current_list.append('C')
 			tile_dict[co_1] = current_list
 		paths = 0
@@ -775,15 +776,19 @@ def generate_random_world(num_long, num_wide, length, width, density):
 			paths += len(tile_dict[co])
 		current_density = paths/float(num_long*num_wide*4)
 		iterations += 1
-		print(iterations)
-		print(current_density)
-	for co in tile_dict:
-		exitnodelist = tile_dict[co]
-		t = tile(length, width, exitnodelist)
-		l.fill_tile(t, co)
-	return(l)
+		#print(iterations)
+		#print(current_density)
+	for tile in tile_dict:
+		v = tile_dict[tile]
+		if len(v)>1 and 'C' in v:
+			v.remove('C')
+		tile_dict[tile] = v
+	return(tile_dict)
 
-'''
+map_num_long = 12
+map_num_wide = 12
+map_pre_dict = generate_random_world(map_num_long, map_num_wide, map_tile_size, map_tile_size, .4)
+
 
 
 
