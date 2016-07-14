@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="dumbplanner" pkg="planner" type="dumb_planner.py" output="screen"/>
+
+</launch>
