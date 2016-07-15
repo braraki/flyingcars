@@ -21,8 +21,8 @@ import numpy as np
 
 import thread
 
-cf_num = 7
-z_coefficient = 10
+cf_num = int(rospy.get_param('/highlighter/cf_num'))
+z_coefficient = 3
 land_vel = 0.4 #m/s
 air_vel = 1
 dt = 0.1
@@ -56,6 +56,12 @@ class SearchNode:
 			return [self.state]
 		else:
 			return self.parent.path() + [self.state]
+
+	def verbose_path(self):
+		if self.parent == None:
+			return [(self.state, self.start, self.finish)]
+		else:
+			return self.parent.verbose_path() + [(self.state,self.start,self.finish)]
 	
 class PriorityQueue:
 	def __init__(self):
@@ -68,7 +74,109 @@ class PriorityQueue:
 	def is_empty(self):
 		return len(self.data) == 0
  
-def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
+def a_star(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
+	if goal_test(start_state):
+		return [start_state]
+
+	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
+	agenda = PriorityQueue()
+	agenda.push(start_node, heuristic(start_state))
+	expanded = set()
+	while not agenda.is_empty():
+		parent = agenda.pop()
+		if parent.state not in expanded or parent.state == parent.parent.state:
+			expanded.add(parent.state)
+			if goal_test(parent.state):
+				return parent
+			for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
+				child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, parent.cost+cost)
+				if child_state in expanded and child_state != parent.state:
+					continue
+				agenda.push(child, child.cost+heuristic(child_state))
+	return None
+
+def a_star_bad(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
+	if goal_test(start_state):
+		return [start_state]
+
+	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
+	agenda = PriorityQueue()
+	agenda.push(start_node, heuristic(start_state))
+	visited = [0]*numNodes
+	while not agenda.is_empty():
+		parent = agenda.pop()
+		visited[parent.state] = visited[parent.state] + 1
+		#print parent.state, visited[parent.state], parent.cost
+		if goal_test(parent.state):
+			return parent
+		for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
+			child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, (1+parent.cost+cost)*(visited[child_state]+1))
+			agenda.push(child, child.cost+heuristic(child_state))
+			print child.state, visited[child.state], child.cost
+	return None
+
+def successors(info_dict,adj_array):
+	global res_table
+	def __inner(state, t):
+		global res_table
+
+		(x1, y1, z1) = info_dict[state][0]
+		sucs = []
+		#the nth row in an adj_array corresponds to which nodes
+		#the nth node connects to 
+		row = adj_array[state]
+		for (ID2, value) in enumerate(row):
+			if value == 1:
+				(fx, fy, fz) = info_dict[ID2][0]
+				category = info_dict[ID2][1]
+				if category == 1 or category == 2:
+					vel = land_vel
+				else:
+					vel = air_vel
+				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+				travel_time = dist_traveled/vel
+				cost = travel_time + dist_traveled
+				if dist_traveled == 0:
+					travel_time = 0.11
+					cost = travel_time * 10
+				#convert the travel time into reservation table indices
+				(start, finish) = timeToIndices(t, t+travel_time)
+				reservations = res_table[ID2]
+				res_list = reservations[start:finish]
+				if start == finish:
+					res_list = [reservations[start]]
+
+				if 1 not in res_list:
+					sucs.append((ID2, cost, travel_time,start,finish))
+				#print ID2, res_list
+		return(sucs)
+	return __inner
+
+def fillResTable(node):
+	global res_table
+
+	state = node.state
+	start = node.start
+	finish = node.finish
+
+	for i in range(start,finish+1):
+		if i > 0:
+			res_table[state][i] = 1
+			if node.parent != None and node.parent.parent != None:
+				res_table[node.parent.state][i] = 1
+
+	if node.parent != None:
+		fillResTable(node.parent)
+
+
+def timeToIndices(start, finish):
+	startIndex = int(math.ceil(start/dt))
+	finishIndex = int(math.ceil(finish/dt))
+	#print start, finish
+	#print startIndex+1, finishIndex
+	return startIndex+1,finishIndex
+
+def a_star_old(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
 	if goal_test(start_state):
 		return [start_state]
 
@@ -88,55 +196,6 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 					continue
 				agenda.push(child, child.cost+heuristic(child_state))
 	return None
-
-def fillResTable(node):
-	state = node.state
-	start = node.start
-	finish = node.finish
-	if start == finish:
-		finish = finish + 1
-
-	for i in range(start,finish):
-		res_table[state][i] = 1
-
-
-def timeToIndices(start, finish):
-	startIndex = int(math.ceil(start/dt))
-	finishIndex = int(math.ceil(finish/dt))
-	#print start, finish
-	#print startIndex+1, finishIndex
-	return startIndex+1,finishIndex
-
-def successors(info_dict,adj_array):
-	def __inner(id, t):
-		(x1, y1, z1) = info_dict[id][0]
-		sucs = []
-		#the nth row in an adj_array corresponds to which nodes
-		#the nth node connects to 
-		row = adj_array[id]
-		for (ID2, value) in enumerate(row):
-			if value == 1:
-				(fx, fy, fz) = info_dict[ID2][0]
-				category = info_dict[ID2][1]
-				if category == 1 or category == 2:
-					vel = land_vel
-				else:
-					vel = air_vel
-				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
-				travel_time = dist_traveled/vel
-				if travel_time == 0:
-					travel_time = 0.11
-				#convert the travel time into reservation table indices
-				(start, finish) = timeToIndices(t, t+travel_time)
-				reservations = res_table[id]
-				res_list = reservations[start:finish]
-				if start == finish:
-					res_list = [reservations[start]]
-
-				if 1 not in res_list:
-					sucs.append((ID2, dist_traveled, travel_time,start,finish))
-		return(sucs)
-	return __inner
 
 class system:
 	def __init__(self, adj_array, info_dict, cf_ID, pub):
@@ -176,12 +235,25 @@ class system:
 
 		def goal_test(id):
 			return  ID2== id
+
+		def successors_old(id):
+			(x1, y1, z1) = self.info_dict[id][0]
+			sucs = []
+			row = self.adj_array[id]
+			for (ID2, value) in enumerate(row):
+				if value == 1:
+					(fx, fy, fz) = self.info_dict[ID2][0]
+					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+					sucs.append((ID2, dist_traveled))
+			return(sucs)
 		def dist(id):
 			(x1, y1, z1) = self.info_dict[id][0]
 			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
 			return(dist)
-		start_node = a_star(successors(self.info_dict,self.adj_array), ID1, goal_test, dist)
+
+		start_node = a_star(successors(self.info_dict,self.adj_array), ID1, goal_test, len(info_dict),dist)
 		fillResTable(start_node)
+		print start_node.verbose_path()
 		return start_node.path()
 
 	def update_cf_pos(self, pos):
@@ -237,6 +309,7 @@ class full_system:
 			time.sleep(.1)
 
 def dumb_planner():
+	global res_table
 	rospy.wait_for_service('send_map')
 	try:
 		print('calling')

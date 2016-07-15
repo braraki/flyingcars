@@ -4,8 +4,8 @@
   <arg name="map" default="duckytown_map" />
 
   <!--<remap from="simulator/path_topic" to="highlighter/path_topic" />
-  <remap from="simple_marker/path_topic" to="highlighter/path_topic" /> -->
-  <remap from="highlighter/SimPos_topic" to="simulator/SimPos_topic" />
+  <remap from="simple_marker/path_topic" to="highlighter/path_topic" />
+  <remap from="highlighter/SimPos_topic" to="simulator/SimPos_topic" /> -->
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
   <remap from="nodevisualizer/send_map" to="mapmaker/send_map" />
