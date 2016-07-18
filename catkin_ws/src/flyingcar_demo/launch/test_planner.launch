@@ -2,7 +2,7 @@
 <launch>
 
   <arg name="cf_num" default="1"/>
-  <arg name="map" default="collision_map" />
+  <arg name="map" default="duckytown_map" />
 
   <remap from="simulator/path_topic" to="dumbplanner/path_topic" />
   <remap from="simple_marker/path_topic" to="dumbplanner/path_topic" />
