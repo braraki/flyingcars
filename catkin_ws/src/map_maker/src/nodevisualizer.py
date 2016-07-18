@@ -19,6 +19,8 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+import tf
+
 #arguments
 #thickness of the tile (generally)
 tilethickness = float(rospy.get_param('/simple_marker/tilethickness'))
@@ -28,6 +30,9 @@ roadthickness = float(rospy.get_param('/simple_marker/roadthickness'))
 #at a roadratio around .75, a parking frac of 1.0 is needed
 #at a roadratio of .5, a parking frac of .5 is most asthetically pleasing (in my opinion)
 parking_frac = float(rospy.get_param('/simple_marker/parking_frac'))
+robot_description = rospy.get_param('/simple_marker/robot_description')
+#print(robot_description)
+
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -85,9 +90,9 @@ class visual_node:
 	def construct(self, int_marker):
 		n_marker = Marker()
 		n_marker.type = Marker.CUBE
-		n_marker.scale.x = .1
-		n_marker.scale.y = .1
-		n_marker.scale.z = .1
+		n_marker.scale.x = .1*.5
+		n_marker.scale.y = .1*.5
+		n_marker.scale.z = .1*.5
 		(n_marker.color.r, n_marker.color.g, n_marker.color.b) = self.color	
 		n_marker.color.a = .5
 		n_marker.pose.position.x = self.x
@@ -123,9 +128,9 @@ class visual_edge:
 		color = (80, 80, 80)
 		a_marker = Marker()
 		a_marker.type = Marker.ARROW
-		a_marker.scale.x = .05
-		a_marker.scale.y = .1
-		a_marker.scale.z = .1
+		a_marker.scale.x = .05*.5
+		a_marker.scale.y = .1*.5
+		a_marker.scale.z = .1*.5
 		(a_marker.color.r, a_marker.color.g, a_marker.color.b) = color
 		a_marker.color.a = .5
 		start = Point()
@@ -363,6 +368,8 @@ class crazyflie:
 		self.int_marker3.header.frame_id = "base_link"
 		self.int_marker3.name = "my_marker3_cf"+str(self.ID)
 
+		self.broadcaster = tf.TransformBroadcaster()
+
 	def construct_path(self):
 		self.int_marker2 = InteractiveMarker()
 		self.int_marker2.header.frame_id = "base_link"
@@ -376,9 +383,9 @@ class crazyflie:
 			color = (255, 0, 0)
 			a_marker = Marker()
 			a_marker.type = Marker.ARROW
-			a_marker.scale.x = .05*2
-			a_marker.scale.y = .1*2
-			a_marker.scale.z = .1*2
+			a_marker.scale.x = .05*.5
+			a_marker.scale.y = .1*.5
+			a_marker.scale.z = .1*.5
 			(a_marker.color.r, a_marker.color.g, a_marker.color.b) = color
 			a_marker.color.a = 1
 			start = Point()
@@ -409,34 +416,38 @@ class crazyflie:
 			self.construct_path()
 
 	def construct_flie(self, apply_changes = True):
-		self.int_marker3 = InteractiveMarker()
-		self.int_marker3.header.frame_id = "base_link"
-		self.int_marker3.name = "my_marker3_cf"+str(self.ID)
-		
-		cf_marker = Marker()
-		cf_marker.type = Marker.CUBE
-		cf_marker.scale.x = .25
-		cf_marker.scale.y = .25
-		cf_marker.scale.z = .25
+		self.broadcaster.sendTransform((self.position[0], self.position[1], self.position[2]+.025),
+			tf.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "crazy_flie"+str(self.ID)+"/base_link", "base_link")
+		'''
+		else:
+			self.int_marker3 = InteractiveMarker()
+			self.int_marker3.header.frame_id = "base_link"
+			self.int_marker3.name = "my_marker3_cf"+str(self.ID)
+			
+			cf_marker = Marker()
+			cf_marker.type = Marker.CUBE
+			cf_marker.scale.x = .25
+			cf_marker.scale.y = .25
+			cf_marker.scale.z = .25
 
-		cf_marker.color.r = 0.0
-		cf_marker.color.g = 0.0
-		cf_marker.color.b = 1.0
-		cf_marker.color.a = 1.0
+			cf_marker.color.r = 0.0
+			cf_marker.color.g = 0.0
+			cf_marker.color.b = 1.0
+			cf_marker.color.a = 1.0
 
-		cf_marker.pose.position.x = self.position[0]
-		cf_marker.pose.position.y = self.position[1]
-		cf_marker.pose.position.z = self.position[2]
-		
-		cf_control = InteractiveMarkerControl()
-		cf_control.always_visible = True
-		cf_control.markers.append( cf_marker )
-		self.int_marker3.controls.append(cf_control)
+			cf_marker.pose.position.x = self.position[0]
+			cf_marker.pose.position.y = self.position[1]
+			cf_marker.pose.position.z = self.position[2]
+			
+			cf_control = InteractiveMarkerControl()
+			cf_control.always_visible = True
+			cf_control.markers.append( cf_marker )
+			self.int_marker3.controls.append(cf_control)
 
-		self.server.insert(self.int_marker3, processFeedback)
-		if apply_changes:
-			self.server.applyChanges()
-
+			self.server.insert(self.int_marker3, processFeedback)
+			if apply_changes:
+				self.server.applyChanges()
+		'''
 	def update_flie(self, pos):
 		self.position = pos
 

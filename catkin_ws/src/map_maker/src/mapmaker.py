@@ -16,6 +16,7 @@ from enum import Enum
 import numpy as np
 
 #imported parameters
+
 map_road_ratio = float(rospy.get_param('/mapmaker/map_road_ratio'))
 map_tile_size = float(rospy.get_param('/mapmaker/map_tile_size'))
 
@@ -31,6 +32,7 @@ map_num_long = int(rospy.get_param('/mapmaker/map_num_long'))
 map_num_wide = int(rospy.get_param('/mapmaker/map_num_wide'))
 non_fly_list = rospy.get_param('/mapmaker/non_fly_list')
 map_pre_dict = rospy.get_param('/mapmaker/map_pre_dict')
+
 
 #converts strings to tuples
 for k in map_pre_dict.keys():
@@ -740,8 +742,10 @@ def generate_random_world(num_long, num_wide, length, width, density):
 	iterations = 0
 	while current_density < density:
 		co_1 = random.choice(coop_list)
-		if len(tile_dict[co_1])>2:
+		if len(tile_dict[co_1]) >= 2:
 			co_1 = random.choice(coop_list)
+			if len(tile_dict[co_1])>=2:
+				co_1 = random.choice(coop_list)
 		letter = random.choice(letters)
 		current_list = tile_dict[co_1]
 		if letter == 'N' and co_1[1]<(num_wide-1) and 'N' not in current_list:
@@ -784,12 +788,13 @@ def generate_random_world(num_long, num_wide, length, width, density):
 			v.remove('C')
 		tile_dict[tile] = v
 	return(tile_dict)
+'''
 
 map_num_long = 12
 map_num_wide = 12
-map_pre_dict = generate_random_world(map_num_long, map_num_wide, map_tile_size, map_tile_size, .4)
+map_pre_dict = generate_random_world(map_num_long, map_num_wide, map_tile_size, map_tile_size, .5)
 
-
+'''
 
 
 
@@ -803,7 +808,7 @@ for co in map_pre_dict.keys():
 	flyable = True
 	elevation = 0
 	if 'C' in exitnodelist:
-		elevation = 1
+		elevation = .25
 	if co in non_fly_list:
 		flyable = False
 	t = tile(map_tile_size, map_tile_size, exitnodelist, flyable, map_road_ratio, co[0]*map_tile_size, co[1]*map_tile_size, elevation)

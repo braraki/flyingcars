@@ -20,6 +20,7 @@ import numpy as np
 
 
 #parameter
+
 ideal_way_point_d = float(rospy.get_param('/complex_map/ideal_way_point_d'))
 
 class Category(Enum):
