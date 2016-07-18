@@ -3,9 +3,6 @@
   <arg name="cf_num" default="7"/>
   <arg name="map" default="duckytown_map" />
 
-  <remap from="simulator/path_topic" to="highlighter/path_topic" />
-  <remap from="simple_marker/path_topic" to="highlighter/path_topic" />
-  <remap from="highlighter/SimPos_topic" to="simulator/SimPos_topic" />
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
   <remap from="nodevisualizer/send_map" to="mapmaker/send_map" />
@@ -40,10 +37,7 @@
   	<param name="ground_step_dist" value=".025"/>
   	<param name="delay" value=".1"/>
   </node>
-  <node name="highlighter" pkg="map_maker" type="highlighter.py">
-  	<param name="cf_num" value="$(arg cf_num)"/>
-  	<param name="z_coefficient" value="4"/>
-  </node>
+  
   <param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>
 
 

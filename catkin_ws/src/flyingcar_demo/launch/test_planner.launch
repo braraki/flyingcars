@@ -2,18 +2,22 @@
 <launch>
 
   <arg name="cf_num" default="1"/>
+  <arg name="z_coefficient" default="4" />
   <arg name="map" default="duckytown_map" />
+  <arg name="planner" default="td_planner" />
 
-  <remap from="simulator/path_topic" to="dumbplanner/path_topic" />
-  <remap from="simple_marker/path_topic" to="dumbplanner/path_topic" />
+  <remap from="simulator/path_topic" to="$(arg planner)/path_topic" />
+  <remap from="simple_marker/path_topic" to="$(arg planner)/path_topic" />
+  <remap from="$(arg planner)/SimPos_topic" to="simulator/SimPos_topic" />
 
   <include file="$(find map_maker)/launch/visualizer.launch">
   	<arg name="cf_num" value="$(arg cf_num)" />
   	<arg name="map" value="$(arg map)" />
   </include>
 
-  <include file="$(find planner)/launch/dumbplanner.launch">
+  <include file="$(find planner)/launch/$(arg planner).launch">
     <arg name="cf_num" value="$(arg cf_num)"/>
+    <arg name="z_coefficient" value="$(arg z_coefficient)"/>
   </include>
 
 

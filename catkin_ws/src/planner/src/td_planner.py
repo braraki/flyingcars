@@ -21,8 +21,8 @@ import numpy as np
 
 import thread
 
-cf_num = int(rospy.get_param('/highlighter/cf_num'))
-z_coefficient = 3
+cf_num = int(rospy.get_param('/td_planner/cf_num'))
+z_coefficient = float(rospy.get_param('/td_planner/z_coefficient'))
 land_vel = 0.4 #m/s
 air_vel = 1
 dt = 0.1
@@ -308,7 +308,7 @@ class full_system:
 				sys.publish_old_path()
 			time.sleep(.1)
 
-def dumb_planner():
+def td_planner():
 	global res_table
 	rospy.wait_for_service('send_map')
 	try:
@@ -342,6 +342,5 @@ def dumb_planner():
 
 
 if __name__ == "__main__":
-	print('test')
-	rospy.init_node("dumbplanner",anonymous=False)
-	dumb_planner()
+	rospy.init_node("td_planner",anonymous=False)
+	td_planner()
