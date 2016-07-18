@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+  <arg name="cf_num" default="1"/>
+  <arg name="map" default="collision_map" />
+
+  <remap from="simulator/path_topic" to="dumbplanner/path_topic" />
+  <remap from="simple_marker/path_topic" to="dumbplanner/path_topic" />
+
+  <include file="$(find map_maker)/launch/visualizer.launch">
+  	<arg name="cf_num" value="$(arg cf_num)" />
+  	<arg name="map" value="$(arg map)" />
+  </include>
+
+  <include file="$(find planner)/launch/dumbplanner.launch">
+    <arg name="cf_num" value="$(arg cf_num)"/>
+  </include>
+
+
+</launch>
