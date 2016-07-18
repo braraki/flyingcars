@@ -788,14 +788,13 @@ def generate_random_world(num_long, num_wide, length, width, density):
 			v.remove('C')
 		tile_dict[tile] = v
 	return(tile_dict)
-'''
 
-map_num_long = 12
-map_num_wide = 12
+'''
+map_num_long = 8
+map_num_wide = 8
 map_pre_dict = generate_random_world(map_num_long, map_num_wide, map_tile_size, map_tile_size, .5)
 
 '''
-
 
 
 #the next scripts constructs a landscape and then a node/edge map without calling builder
