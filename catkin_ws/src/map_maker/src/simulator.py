@@ -20,9 +20,11 @@ import numpy as np
 
 import thread
 #arguments
+
 air_step_dist = float(rospy.get_param('/simulator/air_step_dist'))
 ground_step_dist = float(rospy.get_param('/simulator/ground_step_dist'))
 delay = float(rospy.get_param('/simulator/delay'))
+
 
 class Category(Enum):
 	mark = 0

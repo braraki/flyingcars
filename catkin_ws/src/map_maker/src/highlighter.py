@@ -21,8 +21,10 @@ import numpy as np
 import thread
 
 #arguments
+
 cf_num = int(rospy.get_param('/highlighter/cf_num'))
 z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
+
 
 class Category(Enum):
 	mark = 0
