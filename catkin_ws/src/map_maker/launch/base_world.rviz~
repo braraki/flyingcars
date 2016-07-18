@@ -7,6 +7,7 @@ Panels:
         - /Global Options1
         - /Status1
         - /InteractiveMarkers1
+#difference1
       Splitter Ratio: 0.5
     Tree Height: 683
   - Class: rviz/Selection
@@ -35,7 +36,7 @@ Visualization Manager:
       Cell Size: 1
       Class: rviz/Grid
       Color: 160; 160; 164
-      Enabled: true
+      Enabled: false
       Line Style:
         Line Width: 0.03
         Value: Lines
@@ -58,6 +59,7 @@ Visualization Manager:
       Show Visual Aids: false
       Update Topic: /simple_marker/update
       Value: true
+#difference2
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

@@ -480,7 +480,7 @@ class landscape:
 			self.interface.generate_nodes()
 			self.interface.connect_to_land()
 			self.cloud.generate_nodes()
-			self.cloud.connect_own_2()
+			self.cloud.connect_own()
 			self.connect_interface_and_cloud()
 		self.assign_ID()
 		return_node_list = []
@@ -597,24 +597,8 @@ class cloud:
 							else:
 								self.tile_node_dict[t] += [n]
 							self.node_dict[(x,y,z)] = n
-
 	#links adjacent (including diagonal) nodes in a two-way edge
 	def connect_own(self):
-		t = self.landscape.tile_dict.values()[0]
-		y_dist = t.width/float(self.density)
-		x_dist = t.length/float(self.density)
-		z_dist = self.layer_dist
-		for n in self.node_dict.values():
-			for dx in [-1*x_dist, 0 , x_dist]:
-				for dy in [-1*y_dist, 0, y_dist]:
-					for dz in [-1*z_dist, 0, z_dist]:
-						if dx != 0 or dy != 0 or dz != 0:
-							if (dx+n.x, dy+n.y, dz+n.z) in self.node_dict:
-								n2 = self.node_dict[(dx+n.x, dy+n.y, dz+n.z)]
-								n.add_successor(n2)
-
-	#same purpose as connect own, bug free but less efficient
-	def connect_own_2(self):
 		for t in self.tile_node_dict:
 			nodes = self.tile_node_dict[t]
 			for n1 in nodes:

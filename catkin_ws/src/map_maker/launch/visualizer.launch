@@ -5,13 +5,6 @@
 
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
-  <remap from="nodevisualizer/send_map" to="mapmaker/send_map" />
-  <remap from="simulator/send_map" to="mapmaker/send_map" />
-  <remap from="highlighter/send_map" to="mapmaker/send_map" />
-  <remap from="complex_map/send_map" to="mapmaker/send_map" />
-
-  <remap from="nodevisualizer/send_complex_map" to="complex_map/send_complex_map" />
-
   <node name="foo" pkg="map_maker" type="make_rviz.sh" output="screen" args="$(arg cf_num)"/>
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
     <param name="map_road_ratio" value=".75"/>
@@ -31,6 +24,8 @@
   	<param name="roadthickness" value=".025"/>
   	<param name="parking_frac" value="1"/>
   	<param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>
+  	<param name="air_node_display" value="False"/>
+  	<param name="waypoint_node_display" value="False"/>
   </node>
   <node name="simulator" pkg="map_maker" type="simulator.py">
   	<param name="air_step_dist" value=".05"/>

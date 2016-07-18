@@ -33,8 +33,11 @@ class Category(Enum):
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
+#a_list represents the distance at which the number of waypoint nodes should change.
+#The values represent the max distance for the waypoint of that entries index
 a_list = []
 
+#expands the a_list
 def update_a_list(dist):
 	print('update')
 	global a_list
@@ -48,6 +51,7 @@ def update_a_list(dist):
 		if a_n > dist:
 			unfound = False
 
+#finds the proper number of waypoints based on the distance
 def get_num_waypoints(dist):
 	#print('get num')
 	for i in range(len(a_list)):
@@ -56,6 +60,7 @@ def get_num_waypoints(dist):
 	update_a_list(dist)
 	return(get_num_waypoints(dist))
 
+#returns info_dict and adjacency_array with waypoints added
 def get_new_info(info_dict, adjacency_array):
 	ID_num = len(info_dict)
 
@@ -104,6 +109,7 @@ def get_new_info(info_dict, adjacency_array):
 
 	return(new_info_dict, A)
 
+#sends info out
 class sender:
 	def __init__(self, info_dict, adjacency_matrix):
 		A2 = adjacency_matrix.flatten()

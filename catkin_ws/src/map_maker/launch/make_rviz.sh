@@ -2,9 +2,6 @@
 
 cf_num=$1
 
-echo $cf_num
-#cf_num=5
-
 current_num=0
 
 #define rviz file as file

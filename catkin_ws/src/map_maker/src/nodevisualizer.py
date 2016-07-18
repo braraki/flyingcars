@@ -32,7 +32,8 @@ roadthickness = float(rospy.get_param('/simple_marker/roadthickness'))
 parking_frac = float(rospy.get_param('/simple_marker/parking_frac'))
 robot_description = rospy.get_param('/simple_marker/robot_description')
 #print(robot_description)
-
+air_node_display = bool(rospy.get_param('/simple_marker/air_node_display'))
+waypoint_node_display = bool(rospy.get_param('/simple_marker/waypoint_node_display'))
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -154,33 +155,6 @@ class visual_edge:
 		return(int_marker)
 
 class node_scape:
-	'''
-	def __init__(self, node_doc, edge_doc):
-		self.node_list = []
-		self.node_ID_dict = {}
-		with open(node_doc, 'rb') as csvfile:
-			read = csv.reader(csvfile)
-			for row in read:
-				ID = int(row[0])
-				x = float(row[1])
-				y = float(row[2])
-				z = float(row[3])
-				vn = visual_node(ID, x, y, z)
-				self.node_list.append(vn)
-				self.node_ID_dict[ID] = vn
-		self.edge_list = []
-		with open(edge_doc, 'rb') as csvfile:
-			read = csv.reader(csvfile)
-			for row in read:
-				ID = int(row[0])
-				node1ID = int(row[1])
-				node2ID = int(row[2])
-				ve = visual_edge(ID, node1ID, node2ID, self.node_ID_dict[node1ID], self.node_ID_dict[node2ID])
-				self.edge_list.append(ve)
-		self.successor_precursors()
-		self.categorize_nodes()
-		self.tile_dict = {}
-	'''
 	def __init__(self, info_dict, adjacency_matrix, num_IDs):
 		self.info_dict = info_dict
 		self.adjacency_matrix = adjacency_matrix
@@ -207,6 +181,7 @@ class node_scape:
 		self.successor_precursors()
 		self.tile_dict = {}
 
+	#turns edges into successors and precursors for nodes
 	def successor_precursors(self):
 		print('edge work')
 		for e in self.edge_list:
@@ -253,6 +228,7 @@ class building_scape:
 		self.crazyflie_list = []
 		self.cf_num = None
 
+	#does all of the tile work (roadratio, flyable, etc.)
 	def build_tiles(self):
 		markxs = []
 		markys = []
@@ -289,6 +265,7 @@ class building_scape:
 		for t in self.tile_dict.values():
 			t.assign_road_ratio(base_road_ratio)
 
+	#response to path info, builds and updates path
 	def respond(self, data):
 		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
 		if self.cf_num == None:
@@ -303,6 +280,7 @@ class building_scape:
 			cf = self.crazyflie_list[data.ID]
 			cf.update_path(p)
 
+	#response to position information, builds and updates crazyflie
 	def pos_respond(self, data):
 		if len(self.crazyflie_list) == len(data.x):
 			for id in range(len(data.x)):
@@ -333,15 +311,19 @@ class building_scape:
 
 		for n in self.node_scape.node_list:
 			if n.category != Category.mark:
-				int_marker = n.construct(int_marker)
+				if air_node_display:
+					int_marker = n.construct(int_marker)
+				elif n.category != Category.cloud and n.category != Category.interface:
+					int_marker = n.construct(int_marker)
 			# 'commit' changes and send to all clients
 		
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
-			if node1.category != Category.cloud or node2.category != Category.cloud:
+			if node1.category != Category.cloud and node2.category != Category.cloud:
 				if node1.category != Category.interface and node2.category != Category.interface:
-					int_marker = e.construct(int_marker)
+					if node1.category != Category.mark and node2.category != Category.mark:
+						int_marker = e.construct(int_marker)
 		
 		for t in self.tile_dict.values():
 			int_marker = t.construct(int_marker)
@@ -418,22 +400,22 @@ class crazyflie:
 	def construct_flie(self, apply_changes = True):
 		self.broadcaster.sendTransform((self.position[0], self.position[1], self.position[2]+.025),
 			tf.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "crazy_flie"+str(self.ID)+"/base_link", "base_link")
-		'''
-		else:
+		
+		if True:
 			self.int_marker3 = InteractiveMarker()
 			self.int_marker3.header.frame_id = "base_link"
 			self.int_marker3.name = "my_marker3_cf"+str(self.ID)
 			
 			cf_marker = Marker()
-			cf_marker.type = Marker.CUBE
-			cf_marker.scale.x = .25
-			cf_marker.scale.y = .25
-			cf_marker.scale.z = .25
+			cf_marker.type = Marker.CYLINDER
+			cf_marker.scale.x = .15
+			cf_marker.scale.y = .15
+			cf_marker.scale.z = .03
 
-			cf_marker.color.r = 0.0
-			cf_marker.color.g = 0.0
-			cf_marker.color.b = 1.0
-			cf_marker.color.a = 1.0
+			cf_marker.color.r = 1
+			cf_marker.color.g = 1
+			cf_marker.color.b = 0
+			cf_marker.color.a = 1
 
 			cf_marker.pose.position.x = self.position[0]
 			cf_marker.pose.position.y = self.position[1]
@@ -447,12 +429,9 @@ class crazyflie:
 			self.server.insert(self.int_marker3, processFeedback)
 			if apply_changes:
 				self.server.applyChanges()
-		'''
+		
 	def update_flie(self, pos):
 		self.position = pos
-
-
-
 
 class tile:
 	def __init__(self, x, y, z, length, width):
@@ -468,6 +447,7 @@ class tile:
 		#flyable default is true
 		self.flyable = True
 
+	#finds if node is contained in tile
 	def test_node(self, n):
 		if n.category == Category.land or n.category == Category.park:
 			if n.x >= self.x - .5*self.length and n.x <= self.x + .5*self.length:
@@ -475,6 +455,7 @@ class tile:
 					return(True)
 		return(False)
 
+	#tests and assigns node if proper
 	def assign_node(self, n):
 		if n not in self.land_nodes + self.park_nodes:
 			if n.category == Category.land:
@@ -484,6 +465,7 @@ class tile:
 				self.park_nodes.append(n)
 				n.assign_tile(self)
 
+	#determines road_ratio
 	def return_road_ratio(self):
 		if 'C' in self.exitnodelist or self.exitnodelist == []:
 			return(None)
@@ -502,11 +484,10 @@ class tile:
 		print(running_r)
 		return(running_r)
 
-
-
 	def assign_road_ratio(self, ratio):
 		self.road_ratio = ratio
 
+	#reconstructs the exitnodelist
 	def build_exitnodelist(self):
 		for ln in self.land_nodes:
 			if 'C' not in self.exitnodelist:
@@ -525,6 +506,7 @@ class tile:
 		if len(self.exitnodelist) > 1:
 			self.exitnodelist.remove('C')
 
+	#determines if flyable
 	def build_flyable(self, full_node_list):
 		f = False
 		all_nodes = self.land_nodes + self.park_nodes
@@ -542,9 +524,6 @@ class tile:
 						if n.y >= self.y - .5*self.width and n.y <= self.y + .5*self.length:
 							f = True
 		self.flyable = f
-
-
-
 
 	def construct(self, int_marker):
 		#base
@@ -727,13 +706,14 @@ def map_maker_client():
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
-		for ID in range(num_IDs, resp_complex.num_IDs):
-			c = static_category_dict[resp_complex.category_list[ID]]
-			if c == Category.waypoint:
-				x = (resp_complex.x_list[ID])/1000.0
-				y = (resp_complex.y_list[ID])/1000.0
-				z = (resp_complex.z_list[ID])/1000.0
-				info_dict[ID] = ((x, y, z), c)
+		if waypoint_node_display:
+			for ID in range(num_IDs, resp_complex.num_IDs):
+				c = static_category_dict[resp_complex.category_list[ID]]
+				if c == Category.waypoint:
+					x = (resp_complex.x_list[ID])/1000.0
+					y = (resp_complex.y_list[ID])/1000.0
+					z = (resp_complex.z_list[ID])/1000.0
+					info_dict[ID] = ((x, y, z), c)
 		#print(info_dict)
 		ns = node_scape(info_dict, A, resp_complex.num_IDs)
 		#ns.construct()

@@ -36,7 +36,7 @@ class Category(Enum):
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
-
+#returns list of points from path
 def analyse(p, info_dict):
 	spots = []
 	for index in range(len(p)-1):
@@ -60,6 +60,7 @@ def analyse(p, info_dict):
 	spots.append((int(1000*x2), int(1000*y2), int(1000*z2)))
 	return(spots)
 
+#controls single crazyflie
 class system:
 	def __init__(self, info_dict, adjacency_array, path, ID):
 		self.info_dict = info_dict
@@ -82,7 +83,7 @@ class system:
 			self.index = 0
 
 
-
+#controls all crazyflies
 class full_system:
 	def __init__(self, info_dict, adjacency_array):
 		self.info_dict = info_dict
@@ -100,6 +101,7 @@ class full_system:
 		print('in runner')
 		rospy.spin()
 
+	#assigns path info
 	def act(self, data):
 		print('act')
 		if not self.go:
@@ -108,6 +110,7 @@ class full_system:
 		sys.new_path(data.path)
 		#self.sub_run()
 
+	#sends constant position messages (thread)
 	def sub_run(self):
 		rate = rospy.Rate(1/float(delay))
 		while self.go:
@@ -120,6 +123,7 @@ class full_system:
 				#print('published: ' + str((self.x_list[0], self.y_list[0], self.z_list[0])))
 				rate.sleep()
 
+	#path info for a crazyflies first path
 	def collect_info(self, data):
 		if self.cf_num == None:
 			self.cf_num = data.num_IDs

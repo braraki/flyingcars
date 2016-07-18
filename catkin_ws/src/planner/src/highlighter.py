@@ -83,6 +83,7 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				agenda.push(child, child.cost+heuristic(child_state))
 	return None
 
+#single crazyflie
 class system:
 	def __init__(self, adj_array, info_dict, cf_ID, pub):
 		self.adj_array = adj_array
@@ -183,12 +184,14 @@ class full_system:
 		thread.start_new_thread ( self.double_check , ())
 		rospy.spin()
 
+	#publishes constant old paths
 	def double_check(self):
 		while True:
 			for sys in self.system_list:
 				sys.publish_old_path()
 			time.sleep(.1)
 
+	#response to simulator, updates position accordingly
 	def pos_update(self, data):
 		x_list = data.x
 		y_list = data.y
