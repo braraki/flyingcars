@@ -24,9 +24,11 @@ import thread
 cf_num = int(rospy.get_param('/td_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/td_planner/z_coefficient'))
 land_vel = 0.4 #m/s
-air_vel = 1
+air_vel = 0.8
 dt = 0.1
 res_table = []
+numberOfNodes = 0
+numTimesteps = 1200
 
 class Category(Enum):
 	mark = 0
@@ -74,11 +76,13 @@ class PriorityQueue:
 	def is_empty(self):
 		return len(self.data) == 0
  
-def a_star(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
+def a_star(successors, goal_test, numNodes, start_node, heuristic=lambda x: 0):
+	start_state = start_node.state
+
 	if goal_test(start_state):
 		return [start_state]
 
-	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
+	#start_node = SearchNode(start_state, None, start_time, start_index, start_index, 0)
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
 	expanded = set()
@@ -116,9 +120,7 @@ def a_star_bad(successors, start_state, goal_test, numNodes, heuristic=lambda x:
 	return None
 
 def successors(info_dict,adj_array):
-	global res_table
 	def __inner(state, t):
-		global res_table
 
 		(x1, y1, z1) = info_dict[state][0]
 		sucs = []
@@ -136,6 +138,7 @@ def successors(info_dict,adj_array):
 				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
 				travel_time = dist_traveled/vel
 				cost = travel_time + dist_traveled
+				#assign a cost for waiting
 				if dist_traveled == 0:
 					travel_time = 0.11
 					cost = travel_time * 10
@@ -160,7 +163,7 @@ def fillResTable(node):
 	finish = node.finish
 
 	for i in range(start,finish+1):
-		if i > 0:
+		if i >= 0:
 			res_table[state][i] = 1
 			if node.parent != None and node.parent.parent != None:
 				res_table[node.parent.state][i] = 1
@@ -168,10 +171,20 @@ def fillResTable(node):
 	if node.parent != None:
 		fillResTable(node.parent)
 
-
 def timeToIndices(start, finish):
+	global res_table
+	global numTimesteps
+
 	startIndex = int(math.ceil(start/dt))
 	finishIndex = int(math.ceil(finish/dt))
+
+	if startIndex >= numTimesteps/2 or finishIndex >= numTimesteps/2:
+		for i in range(numberOfNodes):
+			res_table[i].extend([0]*1200)
+		numTimesteps = numTimesteps + 1200
+		print "ADDED MORE TIME STEPS:"
+		print len(res_table[0])
+
 	#print start, finish
 	#print startIndex+1, finishIndex
 	return startIndex+1,finishIndex
@@ -206,6 +219,7 @@ class system:
 		self.end_pos = None
 		self.cf_pos = None
 		self.park_IDs = []
+		self.endNodes = {}
 		for id in self.info_dict:
 			info = self.info_dict[id]
 			c = info[1]
@@ -251,10 +265,18 @@ class system:
 			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
 			return(dist)
 
-		start_node = a_star(successors(self.info_dict,self.adj_array), ID1, goal_test, len(info_dict),dist)
-		fillResTable(start_node)
-		print start_node.verbose_path()
-		return start_node.path()
+		if ID1 in self.endNodes:
+			last_node = self.endNodes[ID1]
+			start_node = SearchNode(ID1, None, last_node.time, last_node.finish+1, last_node.finish+1, 0)
+		else:
+			start_node =SearchNode(ID1, None, 0, 0, 0, 0)
+
+		end_node = a_star(successors(self.info_dict,self.adj_array), goal_test, len(info_dict),start_node, dist)
+		fillResTable(end_node)
+		self.endNodes[end_node.state] = end_node
+
+		print end_node.verbose_path()
+		return end_node.path()
 
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
@@ -323,6 +345,7 @@ class full_system:
 
 def td_planner():
 	global res_table
+	global numberOfNodes
 	rospy.wait_for_service('send_map')
 	try:
 		print('calling')
@@ -339,12 +362,13 @@ def td_planner():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		info_dict = {}
+		numberOfNodes = num_IDs
 		for ID in range(num_IDs):
 			x = (x_list[ID])/1000.0
 			y = (y_list[ID])/1000.0
 			z = (z_list[ID])/1000.0
 			c = static_category_dict[category_list[ID]]
-			res_table.append([0]*1200)
+			res_table.append([0]*numTimesteps)
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z),c)
 		#print(info_dict)
