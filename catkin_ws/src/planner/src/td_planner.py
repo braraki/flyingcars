@@ -297,6 +297,7 @@ class full_system:
 		for ID in range(cf_num):
 			sys = system(self.adj_array, self.info_dict, ID, self.pub)
 			self.system_list.append(sys)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
 		thread.start_new_thread ( self.double_check , ())
@@ -307,6 +308,18 @@ class full_system:
 			for sys in self.system_list:
 				sys.publish_old_path()
 			time.sleep(.1)
+
+	#response to simulator, updates position accordingly
+	def pos_update(self, data):
+		x_list = data.x
+		y_list = data.y
+		z_list = data.z
+		for id in range(len(x_list)):
+			sys = self.system_list[id]
+			x = x_list[id]/1000.0
+			y = y_list[id]/1000.0
+			z = z_list[id]/1000.0
+			sys.update_cf_pos((x, y, z))
 
 def td_planner():
 	global res_table
