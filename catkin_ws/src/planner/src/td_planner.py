@@ -121,9 +121,10 @@ def successors(info_dict,adj_array):
 					vel = land_vel
 				else:
 					vel = air_vel
-				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
+				dist_cost = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
 				travel_time = dist_traveled/vel
-				cost = travel_time + dist_traveled
+				cost = travel_time + dist_cost
 				#assign a cost for waiting
 				if dist_traveled == 0:
 					travel_time = 0.11
@@ -282,14 +283,9 @@ class system:
 				self.backwardsSearch(id,ID2)
 			return self.shortestPaths[id]
 
-		time = rospy.get_time() - self.start_time
-		(zdfs, timeFinish) = timeToIndices(0, time)
-
 		if ID1 in self.endNodes:
 			last_node = self.endNodes[ID1]
-			print last_node.finish, timeFinish
 			start_node = SearchNode(ID1, None, last_node.time, last_node.finish+1, last_node.finish+1, 0)
-			#start_node = SearchNode(ID1, None, time, timeFinish, timeFinish, 0)
 		else:
 			start_node =SearchNode(ID1, None, 0, 0, 0, 0)
 
