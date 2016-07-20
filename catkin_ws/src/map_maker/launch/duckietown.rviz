@@ -7,7 +7,6 @@ Panels:
         - /Global Options1
         - /Status1
         - /InteractiveMarkers1
-#difference1
       Splitter Ratio: 0.5
     Tree Height: 683
   - Class: rviz/Selection
@@ -49,7 +48,7 @@ Visualization Manager:
       Plane: XY
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Class: rviz/InteractiveMarkers
       Enable Transparency: true
       Enabled: true
@@ -59,7 +58,6 @@ Visualization Manager:
       Show Visual Aids: false
       Update Topic: /simple_marker/update
       Value: true
-#difference2
     - Alpha: 1
       Class: rviz/RobotModel
       Collision Enabled: false
@@ -495,10 +493,10 @@ Visualization Manager:
         Z: 0.433948
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.2848
+      Pitch: 0.549801
       Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 4.92359
+      Yaw: 4.83359
     Saved: ~
 Window Geometry:
   Displays:
@@ -516,5 +514,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1276
-  X: 134
-  Y: 373
+  X: 590
+  Y: 37

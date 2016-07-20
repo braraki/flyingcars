@@ -3,7 +3,7 @@
 
   <arg name="cf_num" default="1"/>
   <arg name="z_coefficient" default="3" />
-  <arg name="map" default="duckytown_map" />
+  <arg name="map" default="collision_map" />
   <arg name="planner" default="td_planner" />
 
   <remap from="simulator/path_topic" to="$(arg planner)/path_topic" />

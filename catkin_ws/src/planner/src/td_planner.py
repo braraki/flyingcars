@@ -23,10 +23,12 @@ import thread
 
 cf_num = int(rospy.get_param('/td_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/td_planner/z_coefficient'))
-land_vel = 0.4 #m/s
-air_vel = 1
+land_vel = 0.025 #m/s
+air_vel = 0.05
 dt = 0.1
 res_table = []
+numberOfNodes = 0
+numTimesteps = 1200
 
 class Category(Enum):
 	mark = 0
@@ -57,6 +59,12 @@ class SearchNode:
 		else:
 			return self.parent.path() + [self.state]
 
+	def times(self):
+		if self.parent == None:
+			return [self.time]
+		else:
+			return self.parent.times() + [self.time]
+
 	def verbose_path(self):
 		if self.parent == None:
 			return [(self.state, self.start, self.finish)]
@@ -74,11 +82,13 @@ class PriorityQueue:
 	def is_empty(self):
 		return len(self.data) == 0
  
-def a_star(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
+def ca_star(successors, goal_test, numNodes, start_node, heuristic=lambda x: 0):
+	start_state = start_node.state
+
 	if goal_test(start_state):
 		return [start_state]
 
-	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
+	#start_node = SearchNode(start_state, None, start_time, start_index, start_index, 0)
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
 	expanded = set()
@@ -95,30 +105,8 @@ def a_star(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
 				agenda.push(child, child.cost+heuristic(child_state))
 	return None
 
-def a_star_bad(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
-	if goal_test(start_state):
-		return [start_state]
-
-	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
-	agenda = PriorityQueue()
-	agenda.push(start_node, heuristic(start_state))
-	visited = [0]*numNodes
-	while not agenda.is_empty():
-		parent = agenda.pop()
-		visited[parent.state] = visited[parent.state] + 1
-		#print parent.state, visited[parent.state], parent.cost
-		if goal_test(parent.state):
-			return parent
-		for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
-			child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, (1+parent.cost+cost)*(visited[child_state]+1))
-			agenda.push(child, child.cost+heuristic(child_state))
-			print child.state, visited[child.state], child.cost
-	return None
-
 def successors(info_dict,adj_array):
-	global res_table
 	def __inner(state, t):
-		global res_table
 
 		(x1, y1, z1) = info_dict[state][0]
 		sucs = []
@@ -129,13 +117,14 @@ def successors(info_dict,adj_array):
 			if value == 1:
 				(fx, fy, fz) = info_dict[ID2][0]
 				category = info_dict[ID2][1]
-				if category == 1 or category == 2:
+				if category == 1 or category == 2 or category == 5:
 					vel = land_vel
 				else:
 					vel = air_vel
 				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
 				travel_time = dist_traveled/vel
 				cost = travel_time + dist_traveled
+				#assign a cost for waiting
 				if dist_traveled == 0:
 					travel_time = 0.11
 					cost = travel_time * 10
@@ -160,7 +149,7 @@ def fillResTable(node):
 	finish = node.finish
 
 	for i in range(start,finish+1):
-		if i > 0:
+		if i >= 0:
 			res_table[state][i] = 1
 			if node.parent != None and node.parent.parent != None:
 				res_table[node.parent.state][i] = 1
@@ -168,50 +157,92 @@ def fillResTable(node):
 	if node.parent != None:
 		fillResTable(node.parent)
 
-
 def timeToIndices(start, finish):
+	global res_table
+	global numTimesteps
+
 	startIndex = int(math.ceil(start/dt))
 	finishIndex = int(math.ceil(finish/dt))
+
+	#this is where I checked if more time steps need to be added
+	if startIndex >= numTimesteps/2 or finishIndex >= numTimesteps/2:
+		for i in range(numberOfNodes):
+			res_table[i].extend([0]*1200)
+		numTimesteps = numTimesteps + 1200
+
 	#print start, finish
 	#print startIndex+1, finishIndex
 	return startIndex+1,finishIndex
 
-def a_star_old(successors, start_state, goal_test, numNodes, heuristic=lambda x: 0):
-	if goal_test(start_state):
-		return [start_state]
+# spatial A*, used to perform a backwards A* search used as a true distance heuristic
+# in collaborative A*
+# SearchNode: state, parent, time, start,finish,cost=0
+def sa_star(successors, start_state, goal_test, shortestPaths, agenda, expanded, heuristic=lambda x: 0):
+	start_node = SearchNode(start_state, None, 0, 0, 0, shortestPaths[start_state])
+	agenda.push(start_node, start_node.cost + heuristic(start_state))
 
-	start_node = SearchNode(start_state, None, 0, 0, 0, 0)
-	agenda = PriorityQueue()
-	agenda.push(start_node, heuristic(start_state))
-	expanded = set()
+	if goal_test(start_state):
+		return (shortestPaths, agenda, expanded)
+
 	while not agenda.is_empty():
 		parent = agenda.pop()
 		if parent.state not in expanded:
 			expanded.add(parent.state)
 			if goal_test(parent.state):
-				return parent
-			for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
-				child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, parent.cost+cost)
+				return (shortestPaths, agenda, expanded)
+			for child_state, cost in successors(parent.state):
+				child = SearchNode(child_state, parent, 0,0,0, parent.cost+cost)
+				shortestPaths[child_state] = parent.cost + cost
 				if child_state in expanded:
 					continue
 				agenda.push(child, child.cost+heuristic(child_state))
-	return None
+	print "spatial A* may not have worked!!!"
+	return (shortestPaths, agenda, expanded)
 
 class system:
-	def __init__(self, adj_array, info_dict, cf_ID, pub):
+	def __init__(self, adj_array, info_dict, cf_ID, pub, pubTime):
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.cf_ID = cf_ID
 		self.pub = pub
+		self.pubTime = pubTime
 		self.end_pos = None
 		self.cf_pos = None
 		self.park_IDs = []
+		self.endNodes = {}
+		self.shortestPaths = [float('NaN')]*len(info_dict)
+		self.agenda = PriorityQueue()
+		self.expanded = set()
+		self.start_time = rospy.get_time()
 		for id in self.info_dict:
 			info = self.info_dict[id]
 			c = info[1]
 			if c == Category.park:
 				self.park_IDs.append(id)
 		self.p = None
+		self.pTimes = None
+
+	def backwardsSearch(self, ID1, ID2):
+		(x2, y2, z2) = self.info_dict[ID2][0]
+
+		def goal_test(id):
+			return ID1 == id
+		def successors_spatial(id):
+			(x1, y1, z1) = self.info_dict[id][0]
+			sucs = []
+			row = self.adj_array[id]
+			for (ID2, value) in enumerate(row):
+				if value == 1:
+					(fx, fy, fz) = self.info_dict[ID2][0]
+					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+					sucs.append((ID2, dist_traveled))
+			return(sucs)
+		def dist(id):
+			(x1, y1, z1) = self.info_dict[id][0]
+			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
+			return(dist)
+
+		(self.shortestPaths, self.agenda, self.expanded) = sa_star(successors_spatial, ID2, goal_test, self.shortestPaths, self.agenda, self.expanded, dist)
 
 	def generate_random_path(self):
 		if self.end_pos == None:
@@ -227,34 +258,48 @@ class system:
 			if ID2 != ID1:
 				unfound = False
 		self.end_pos = self.info_dict[ID2][0]
-		p = self.find_path(ID1, ID2)
-		return(p)
+		(p,pTimes) = self.find_path(ID1, ID2)
+		return(p,pTimes)
 
 	def find_path(self, ID1, ID2):
+		self.shortestPaths = [float('NaN')]*len(info_dict)
+		self.shortestPaths[ID2] = 0
+
+		self.agenda = PriorityQueue()
+		self.expanded = set()
+
 		(x2, y2, z2) = self.info_dict[ID2][0]
 
 		def goal_test(id):
 			return  ID2== id
-
-		def successors_old(id):
-			(x1, y1, z1) = self.info_dict[id][0]
-			sucs = []
-			row = self.adj_array[id]
-			for (ID2, value) in enumerate(row):
-				if value == 1:
-					(fx, fy, fz) = self.info_dict[ID2][0]
-					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
-					sucs.append((ID2, dist_traveled))
-			return(sucs)
 		def dist(id):
 			(x1, y1, z1) = self.info_dict[id][0]
 			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
 			return(dist)
 
-		start_node = a_star(successors(self.info_dict,self.adj_array), ID1, goal_test, len(info_dict),dist)
-		fillResTable(start_node)
-		print start_node.verbose_path()
-		return start_node.path()
+		def true_dist(id):
+			if np.isnan(self.shortestPaths[id]):
+				self.backwardsSearch(id,ID2)
+			return self.shortestPaths[id]
+
+		time = rospy.get_time() - self.start_time
+		(zdfs, timeFinish) = timeToIndices(0, time)
+
+		if ID1 in self.endNodes:
+			last_node = self.endNodes[ID1]
+			print last_node.finish, timeFinish
+			start_node = SearchNode(ID1, None, last_node.time, last_node.finish+1, last_node.finish+1, 0)
+			#start_node = SearchNode(ID1, None, time, timeFinish, timeFinish, 0)
+		else:
+			start_node =SearchNode(ID1, None, 0, 0, 0, 0)
+
+		end_node = ca_star(successors(self.info_dict,self.adj_array), goal_test, len(info_dict),start_node, true_dist)
+		fillResTable(end_node)
+		#print self.shortestPaths
+		self.endNodes[end_node.state] = end_node
+
+		print end_node.verbose_path()
+		return (end_node.path(), end_node.times())
 
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
@@ -275,15 +320,18 @@ class system:
 		return(False)
 
 	def publish_new_path(self):
-		self.p = self.generate_random_path()
+		(self.p, self.pTimes) = self.generate_random_path()
 		if self.p != None and self.p != []:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.pTimes)
 			print('published')
-			print self.p
+			print self.cf_ID, self.p
+			print self.pTimes
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.pTimes)
 
 class full_system:
 	def __init__(self, adj_array, info_dict):
@@ -291,12 +339,14 @@ class full_system:
 		self.info_dict = info_dict
 		self.system_list = []
 		self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
+		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
 		self.runner()
 
 	def runner(self):
 		for ID in range(cf_num):
-			sys = system(self.adj_array, self.info_dict, ID, self.pub)
+			sys = system(self.adj_array, self.info_dict, ID, self.pub, self.pubTime)
 			self.system_list.append(sys)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
 		thread.start_new_thread ( self.double_check , ())
@@ -308,8 +358,21 @@ class full_system:
 				sys.publish_old_path()
 			time.sleep(.1)
 
+	#response to simulator, updates position accordingly
+	def pos_update(self, data):
+		x_list = data.x
+		y_list = data.y
+		z_list = data.z
+		for id in range(len(x_list)):
+			sys = self.system_list[id]
+			x = x_list[id]/1000.0
+			y = y_list[id]/1000.0
+			z = z_list[id]/1000.0
+			sys.update_cf_pos((x, y, z))
+
 def td_planner():
 	global res_table
+	global numberOfNodes
 	rospy.wait_for_service('send_map')
 	try:
 		print('calling')
@@ -326,12 +389,13 @@ def td_planner():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		info_dict = {}
+		numberOfNodes = num_IDs
 		for ID in range(num_IDs):
 			x = (x_list[ID])/1000.0
 			y = (y_list[ID])/1000.0
 			z = (z_list[ID])/1000.0
 			c = static_category_dict[category_list[ID]]
-			res_table.append([0]*1200)
+			res_table.append([0]*numTimesteps)
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z),c)
 		#print(info_dict)
