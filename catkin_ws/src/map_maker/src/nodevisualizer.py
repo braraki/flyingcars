@@ -21,6 +21,8 @@ import numpy as np
 
 import tf
 
+import thread
+
 #arguments
 #thickness of the tile (generally)
 tilethickness = float(rospy.get_param('/simple_marker/tilethickness'))
@@ -30,10 +32,11 @@ roadthickness = float(rospy.get_param('/simple_marker/roadthickness'))
 #at a roadratio around .75, a parking frac of 1.0 is needed
 #at a roadratio of .5, a parking frac of .5 is most asthetically pleasing (in my opinion)
 parking_frac = float(rospy.get_param('/simple_marker/parking_frac'))
-robot_description = rospy.get_param('/simple_marker/robot_description')
 #print(robot_description)
 air_node_display = bool(rospy.get_param('/simple_marker/air_node_display'))
 waypoint_node_display = bool(rospy.get_param('/simple_marker/waypoint_node_display'))
+
+house_ID = 0
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -265,6 +268,21 @@ class building_scape:
 		for t in self.tile_dict.values():
 			t.assign_road_ratio(base_road_ratio)
 
+		#getting angle for houses
+		opts = {(length, 0):0, (-1*length, 0):math.pi, (0, width):math.pi*.5, (0, -1*width):math.pi*1.5}
+		for spot in self.tile_dict:
+			(x, y) = spot
+			t = self.tile_dict[spot]
+			if t.land_nodes+t.park_nodes+t.exitnodelist == []:
+				k = opts.keys()
+				random.shuffle(k)
+				for o in k:
+					if (x+o[0], y+o[1]) in self.tile_dict:
+						n = self.tile_dict[(x+o[0], y+o[1])]
+						if n.exitnodelist != []:
+							t.assign_theta(opts[o])
+							break
+
 	#response to path info, builds and updates path
 	def respond(self, data):
 		#rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.path)
@@ -447,6 +465,12 @@ class tile:
 		#flyable default is true
 		self.flyable = True
 
+		self.theta = None
+		self.house = None
+
+	def assign_theta(self, theta):
+		self.theta = theta
+
 	#finds if node is contained in tile
 	def test_node(self, n):
 		if n.category == Category.land or n.category == Category.park:
@@ -526,6 +550,15 @@ class tile:
 		self.flyable = f
 
 	def construct(self, int_marker):
+		if self.exitnodelist+self.park_nodes+self.land_nodes == []:
+			if self.house == None:
+				if self.theta == None:
+					theta = random.choice([0, math.pi*.5, math.pi, math.pi*1.5])
+				else:
+					theta = self.theta
+				h = house(self.x, self.y, self.z, theta)
+				self.house = h
+				thread.start_new_thread ( self.house.construct , ())
 		#base
 		base_marker = Marker()
 		base_marker.type = Marker.CUBE
@@ -669,7 +702,24 @@ class tile:
 		return(int_marker)
 
 
+class house:
+	def __init__(self, x, y, z, theta):
+		global house_ID
+		self.x = x
+		self.y = y
+		self.z = z
+		self.theta = theta
+		self.broadcaster = tf.TransformBroadcaster()
+		self.ID = house_ID
+		print('ID: '+str(self.ID))
+		house_ID += 1
 
+	def construct(self):
+		while True:
+			self.broadcaster.sendTransform((self.x, self.y, self.z - roadthickness),
+				tf.transformations.quaternion_from_euler(0, 0, self.theta), rospy.Time.now(), "house"+str(self.ID)+"/whole", "base_link")
+			time.sleep(.1)
+		#self.broadcaster.publishFixedTransforms()
 
 #ns = node_scape('nodes.csv', 'edges.csv')
 #ns.analyse()

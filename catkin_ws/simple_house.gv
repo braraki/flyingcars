@@ -1,0 +1,11 @@
+digraph G {
+node [shape=box];
+"ground" [label="ground"];
+"body" [label="body"];
+"roof" [label="roof"];
+node [shape=ellipse, color=blue, fontcolor=blue];
+"ground" -> "joint1" [label="xyz: 0 0 0 \nrpy: 0 -0 0"]
+"joint1" -> "body"
+"body" -> "joint2" [label="xyz: 0 0 0.2 \nrpy: 1.57 -0 0"]
+"joint2" -> "roof"
+}
