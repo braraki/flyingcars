@@ -4,7 +4,7 @@
 	<link name="whole">
 		<visual>
 			<geometry>
-				<mesh filename="file:///home/crazyflier/flyingcars/catkin_ws/src/map_maker/meshes/simplehouse4.dae"/>
+				<mesh filename="file://$(find map_maker)/meshes/simplehouse4.dae"/>
 			</geometry>
 		</visual>
 	</link>
