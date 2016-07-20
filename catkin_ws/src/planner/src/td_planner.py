@@ -325,7 +325,7 @@ class system:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.pTimes)
 			print('published')
-			print self.cd_ID, self.p
+			print self.cf_ID, self.p
 			print self.pTimes
 
 	def publish_old_path(self):
