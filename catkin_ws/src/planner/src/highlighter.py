@@ -24,7 +24,8 @@ import thread
 
 cf_num = int(rospy.get_param('/highlighter/cf_num'))
 z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
-
+land_vel = .25#0.025 #m/s
+air_vel = .5#0.05
 
 class Category(Enum):
 	mark = 0
@@ -39,6 +40,8 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 
 ##this will search through the dictionary returned from a landscape in the 
 ##get_true_connection_dict function
+
+current_time = 0
 
 class SearchNode:
 	def __init__(self, state, parent, cost=0):
@@ -85,11 +88,12 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 
 #single crazyflie
 class system:
-	def __init__(self, adj_array, info_dict, cf_ID, pub):
+	def __init__(self, adj_array, info_dict, cf_ID, pub, pubTime):
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.cf_ID = cf_ID
 		self.pub = pub
+		self.pubTime = pubTime
 		self.end_pos = None
 		self.cf_pos = None
 		self.park_IDs = []
@@ -99,6 +103,7 @@ class system:
 			if c == Category.park:
 				self.park_IDs.append(id)
 		self.p = None
+		self.times = []
 
 	def generate_random_path(self):
 		if self.end_pos == None:
@@ -150,20 +155,51 @@ class system:
 		if self.end_pos != None and self.cf_pos != None:
 			(x1, y1, z1) = self.cf_pos
 			(x2, y2, z2) = self.end_pos
-			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)
+			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)**.5
 			#print(dist)
 			return(dist < .02)
 		return(False)
 
 	def publish_new_path(self):
 		self.p = self.generate_random_path()
+		self.make_times()
 		if self.p != None and self.p != []:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
 			print('published')
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
+
+
+	def make_times(self):
+		global current_time
+		self.times = []
+		time1 = current_time + 1
+		self.times.append(time1)
+		for p_i in range(len(self.p)-1):
+			ID1 = self.p[p_i]
+			ID2 = self.p[p_i + 1]
+			(x1, y1, z1) = self.info_dict[ID1][0]
+			c1 = self.info_dict[ID1][1]
+			(x2, y2, z2) = self.info_dict[ID2][0]
+			c2 = self.info_dict[ID2][1]
+			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)**.5
+			if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
+				v = air_vel
+			else:
+				v = land_vel
+			t = dist/v
+			time1 += t
+			self.times.append(time1)
+
+
+
+
+
+		
 
 class full_system:
 	def __init__(self, adj_array, info_dict):
@@ -171,11 +207,12 @@ class full_system:
 		self.info_dict = info_dict
 		self.system_list = []
 		self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
+		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
 		self.runner()
 
 	def runner(self):
 		for ID in range(cf_num):
-			sys = system(self.adj_array, self.info_dict, ID, self.pub)
+			sys = system(self.adj_array, self.info_dict, ID, self.pub, self.pubTime)
 			self.system_list.append(sys)
 		#rospy.init_node('highlighter', anonymous = False)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
@@ -192,7 +229,10 @@ class full_system:
 			time.sleep(.1)
 
 	#response to simulator, updates position accordingly
+	#time update hard coded in, will be a problem
 	def pos_update(self, data):
+		global current_time
+		current_time += .01
 		x_list = data.x
 		y_list = data.y
 		z_list = data.z

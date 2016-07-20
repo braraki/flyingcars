@@ -25,6 +25,7 @@ air_step_dist = float(rospy.get_param('/simulator/air_step_dist'))
 ground_step_dist = float(rospy.get_param('/simulator/ground_step_dist'))
 delay = float(rospy.get_param('/simulator/delay'))
 
+current_time = 0
 
 class Category(Enum):
 	mark = 0
@@ -37,7 +38,8 @@ class Category(Enum):
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
 
 #returns list of points from path
-def analyse(p, info_dict):
+def analyse(p, times, info_dict):
+	'''
 	spots = []
 	for index in range(len(p)-1):
 		ID1 = p[index]
@@ -59,29 +61,89 @@ def analyse(p, info_dict):
 			spots.append((int(1000*x), int(1000*y), int(1000*z)))
 	spots.append((int(1000*x2), int(1000*y2), int(1000*z2)))
 	return(spots)
+	'''
+	'''
+	spots = {}
+	last_time = int(times[0]/float(delay))*float(delay)
+	last_ID = p[0]
+	for index in range(len(p)-1):
+		ID2 = p[index+1]
+		t2 = int(times[index+1]/float(delay))*float(delay)
+		(x1, y1, z1) = info_dict[last_ID][0]
+		(x2, y2, z2) = info_dict[ID2][0]
+		dist = ((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)**.5
+		delta_t = int((t2 - last_time)/float(delay))
+		for dt in range(delta_t):
+			t = last_time + dt*float(delay)
+			t = round(t, 2)
+			x = (x1) + (dt/float(delta_t))*(x2 - x1)
+			y = (y1) + (dt/float(delta_t))*(y2 - y1)
+			z = (z1) + (dt/float(delta_t))*(z2 - z1)		
+			spots[t] = (int(1000*x), int(1000*y), int(1000*z))
+		print((t,(x,y,z)))
+		last_ID = ID2
+		last_time = t2
+	#print(spots)
+	return(spots)
+	'''
+	spots = {}
+	last_ID = 0
+	last_time = int(times[0]/float(delay))*float(delay)
+	current_time = round(last_time, 2)
+	end_time = int(times[len(times)-1]/float(delay))*float(delay)
+	while current_time <= end_time:
+		if True:#last_ID < len(times) - 1:
+			if current_time > times[last_ID+1]:
+				last_ID += 1
+		last_time = times[last_ID]
+		next_time = times[last_ID+1]
+		i = info_dict[p[last_ID]]
+		(x1, y1, z1) = i[0]
+		i2 = info_dict[p[last_ID+1]]
+		(x2, y2, z2) = i2[0]
+		frac = (current_time - last_time)/float(next_time - last_time)
+		x = frac*(x2 - x1) + x1
+		y = frac*(y2 - y1) + y1
+		z = frac*(z2 - z1) + z1
+		spots[current_time] = (int(x*1000), int(y*1000), int(z*1000))
+		current_time += delay
+		current_time = round(current_time, 2)
+	#print(sorted(spots.keys()))
+	return(spots)
+
 
 #controls single crazyflie
 class system:
-	def __init__(self, info_dict, adjacency_array, path, ID):
+	def __init__(self, info_dict, adjacency_array, path, times, ID):
 		self.info_dict = info_dict
 		self.adjacency_array = adjacency_array
 		self.path = path
 		self.ID = ID
-		self.spots = analyse(self.path, info_dict)
-		self.index = 0
+		self.times = times
+		self.spots = analyse(self.path, self.times, info_dict)
 
-	def update(self):
-		loc = self.spots[self.index]
-		if self.index < len(self.spots)-1:
-			self.index += 1
-		return(loc)
+	def get_position(self, time):
+		time = round(time, 2)
+		if time in self.spots:
+			return(self.spots[time])
+			self.last_spot = self.spots[time]
+		#this is bug catching, I don't like it (mostly)
+		else:
+			if time > self.times[len(self.times)-1]:
+				i = self.info_dict[self.path[len(self.path)-1]]
+				(x, y, z) = i[0]
+				return(x*1000, y*1000, z*1000)
+			if time < self.times[0]:
+				i = self.info_dict[self.path[0]]
+				(x, y, z) = i[0]
+				return(x*1000, y*1000, z*1000)
+			return((1000,1000,1000))
 
-	def new_path(self, path):
+	def new_path(self, path, times):
 		if path != self.path:
 			self.path = path
-			self.spots = analyse(self.path, self.info_dict)
-			self.index = 0
-
+			self.times = times
+			self.spots = analyse(self.path, self.times, self.info_dict)
 
 #controls all crazyflies
 class full_system:
@@ -97,31 +159,35 @@ class full_system:
 		self.cf_num = None
 
 	def runner(self):
-		rospy.Subscriber('~path_topic', HiPath, self.act)
+		rospy.Subscriber('~time_path_topic', HiPathTime, self.act)
 		print('in runner')
 		rospy.spin()
 
 	#assigns path info
 	def act(self, data):
-		print('act')
+		#print('act')
 		if not self.go:
 			self.collect_info(data)
 		sys = self.system_list[data.ID]
-		sys.new_path(data.path)
+		sys.new_path(data.path, data.times)
 		#self.sub_run()
 
 	#sends constant position messages (thread)
 	def sub_run(self):
+		global current_time
 		rate = rospy.Rate(1/float(delay))
 		while self.go:
 			for index in range(len(self.system_list)):
 				sys = self.system_list[index]
-				loc = sys.update()
+				loc = sys.get_position(current_time)
 				(self.x_list[index], self.y_list[index], self.z_list[index]) = loc
 			if not rospy.is_shutdown():
 				self.pub.publish(self.x_list, self.y_list, self.z_list)
+				#print(current_time)
 				#print('published: ' + str((self.x_list[0], self.y_list[0], self.z_list[0])))
 				rate.sleep()
+				#print(current_time)
+				current_time += delay
 
 	#path info for a crazyflies first path
 	def collect_info(self, data):
@@ -131,7 +197,7 @@ class full_system:
 			self.x_list = [None]*self.cf_num
 			self.y_list = [None]*self.cf_num
 			self.z_list = [None]*self.cf_num
-		sys = system(self.info_dict, self.adjacency_array, data.path, data.ID)
+		sys = system(self.info_dict, self.adjacency_array, data.path, data.times, data.ID)
 		self.system_list[data.ID] = sys
 		if None not in self.system_list:
 			self.go = True
@@ -146,7 +212,6 @@ def map_maker_client():
 	rospy.wait_for_service('send_map')
 	try:
 		print('calling')
-		global info_dict
 		func = rospy.ServiceProxy('send_map', MapTalk)
 		resp = func()
 		print('recieved')

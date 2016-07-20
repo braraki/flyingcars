@@ -23,8 +23,8 @@ import thread
 
 cf_num = int(rospy.get_param('/td_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/td_planner/z_coefficient'))
-land_vel = 0.025 #m/s
-air_vel = 0.05
+land_vel = .25#0.025 #m/s
+air_vel = .5#0.05
 dt = 0.1
 res_table = []
 numberOfNodes = 0
@@ -314,9 +314,9 @@ class system:
 		if self.end_pos != None and self.cf_pos != None:
 			(x1, y1, z1) = self.cf_pos
 			(x2, y2, z2) = self.end_pos
-			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)
+			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)**.5
 			#print(dist)
-			return(dist < .02)
+			return(dist < .0002)
 		return(False)
 
 	def publish_new_path(self):
@@ -326,7 +326,7 @@ class system:
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.pTimes)
 			print('published')
 			print self.cf_ID, self.p
-			print self.pTimes
+			print('times: '+str(self.pTimes))
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:

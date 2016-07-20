@@ -19,14 +19,14 @@
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
   	<param name="ideal_way_point_d" value=".15"/>
   </node>
-  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py" output="screen">
+  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
   	<param name="tilethickness" value=".05"/>
   	<param name="roadthickness" value=".025"/>
   	<param name="parking_frac" value="1"/>
   	<param name="air_node_display" value="False"/>
-  	<param name="waypoint_node_display" value="True"/>
+  	<param name="waypoint_node_display" value="False"/>
   </node>
-  <node name="simulator" pkg="map_maker" type="simulator.py">
+  <node name="simulator" pkg="map_maker" type="simulator.py" output="screen">
   	<param name="air_step_dist" value=".005"/>
   	<param name="ground_step_dist" value=".0025"/>
   	<param name="delay" value=".01"/>

@@ -6,8 +6,8 @@
   <arg name="map" default="collision_map" />
   <arg name="planner" default="td_planner" />
 
-  <remap from="simulator/path_topic" to="$(arg planner)/path_topic" />
   <remap from="simple_marker/path_topic" to="$(arg planner)/path_topic" />
+  <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />
   <remap from="$(arg planner)/SimPos_topic" to="simulator/SimPos_topic" />
 
   <include file="$(find map_maker)/launch/visualizer.launch">

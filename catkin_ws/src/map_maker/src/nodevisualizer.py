@@ -305,7 +305,7 @@ class building_scape:
 				x = data.x[id]/1000.0
 				y = data.y[id]/1000.0
 				z = data.z[id]/1000.0
-				#print((x,y,z))
+				print((x,y,z))
 				if self.crazyflie_list[id] != None:
 					cf = self.crazyflie_list[id]
 					cf.update_flie((x,y,z))
