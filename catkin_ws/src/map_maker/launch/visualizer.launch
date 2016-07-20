@@ -25,7 +25,7 @@
   	<param name="parking_frac" value="1"/>
   	<param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>
   	<param name="air_node_display" value="False"/>
-  	<param name="waypoint_node_display" value="False"/>
+  	<param name="waypoint_node_display" value="True"/>
   </node>
   <node name="simulator" pkg="map_maker" type="simulator.py">
   	<param name="air_step_dist" value=".05"/>

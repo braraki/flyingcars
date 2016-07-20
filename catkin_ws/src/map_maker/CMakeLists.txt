@@ -49,6 +49,7 @@ find_package(catkin REQUIRED COMPONENTS
    FILES
    Num.msg
    HiPath.msg
+   HiPathTime.msg
    SimPos.msg
    PassangerIDs.msg
  )
