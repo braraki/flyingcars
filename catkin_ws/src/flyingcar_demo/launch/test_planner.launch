@@ -5,6 +5,7 @@
   <arg name="z_coefficient" default="3" />
   <arg name="map" default="collision_map" />
   <arg name="planner" default="td_planner" />
+  <arg name="buildings" default="True" />
 
   <remap from="simple_marker/path_topic" to="$(arg planner)/path_topic" />
   <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />
@@ -13,6 +14,7 @@
   <include file="$(find map_maker)/launch/visualizer.launch">
   	<arg name="cf_num" value="$(arg cf_num)" />
   	<arg name="map" value="$(arg map)" />
+    <arg name="buildings" value="$(arg buildings)" />
   </include>
 
   <include file="$(find planner)/launch/$(arg planner).launch">

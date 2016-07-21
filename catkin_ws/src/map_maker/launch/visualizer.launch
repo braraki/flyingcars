@@ -2,10 +2,11 @@
 <launch>
   <arg name="cf_num" default="7"/>
   <arg name="map" default="duckytown_map" />
+  <arg name='buildings' default='True' />
 
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
-  <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(arg cf_num) $(arg map)"/>
+  <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(arg cf_num) $(arg map) $(arg buildings)"/>
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
     <param name="map_road_ratio" value=".75"/>
     <param name="map_tile_size" value=".5"/>
@@ -25,6 +26,8 @@
   	<param name="parking_frac" value="1"/>
   	<param name="air_node_display" value="False"/>
   	<param name="waypoint_node_display" value="False"/>
+    <param name="buildings" value="$(arg buildings)"/>
+    <param name="display_frequency" value="4"/>
   </node>
   <node name="simulator" pkg="map_maker" type="simulator.py" output="screen">
   	<param name="air_step_dist" value=".005"/>

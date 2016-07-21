@@ -25,7 +25,7 @@ air_step_dist = float(rospy.get_param('/simulator/air_step_dist'))
 ground_step_dist = float(rospy.get_param('/simulator/ground_step_dist'))
 delay = float(rospy.get_param('/simulator/delay'))
 
-current_time = 0
+current_time = 0.0
 
 class Category(Enum):
 	mark = 0
@@ -176,10 +176,25 @@ class full_system:
 	def sub_run(self):
 		global current_time
 		rate = rospy.Rate(1/float(delay))
+		start_time = time.time()
+		reps = 0
 		while self.go:
+			actual_time = time.time()
+			if reps%1000 == 0:
+				print('elapsed: '+str(actual_time - start_time))
+				print('sim time: '+str(current_time))
+				print('true clock time: '+str(actual_time))
 			for index in range(len(self.system_list)):
 				sys = self.system_list[index]
-				loc = sys.get_position(current_time)
+
+				'''if you switch the comments for the loc line, you should be able to go
+				between the computers actual time (big numbers) and the simulated time'''
+
+				#loc = sys.get_position(current_time)
+				loc = sys.get_position(round(actual_time, 2))
+
+
+
 				(self.x_list[index], self.y_list[index], self.z_list[index]) = loc
 			if not rospy.is_shutdown():
 				self.pub.publish(self.x_list, self.y_list, self.z_list)
@@ -188,6 +203,7 @@ class full_system:
 				rate.sleep()
 				#print(current_time)
 				current_time += delay
+				reps += 1
 
 	#path info for a crazyflies first path
 	def collect_info(self, data):

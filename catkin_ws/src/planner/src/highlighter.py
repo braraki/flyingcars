@@ -41,7 +41,7 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 ##this will search through the dictionary returned from a landscape in the 
 ##get_true_connection_dict function
 
-current_time = 0
+current_time = 0.0
 
 class SearchNode:
 	def __init__(self, state, parent, cost=0):
@@ -163,6 +163,7 @@ class system:
 	def publish_new_path(self):
 		self.p = self.generate_random_path()
 		self.make_times()
+		print(self.times)
 		if self.p != None and self.p != []:
 			self.pub.publish(cf_num, self.cf_ID, self.p)
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
@@ -175,9 +176,10 @@ class system:
 
 
 	def make_times(self):
-		global current_time
+		#global current_time
 		self.times = []
-		time1 = current_time + 1
+		#time1 = current_time + 1
+		time1 = time.time() + 1
 		self.times.append(time1)
 		for p_i in range(len(self.p)-1):
 			ID1 = self.p[p_i]

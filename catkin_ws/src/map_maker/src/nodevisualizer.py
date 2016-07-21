@@ -35,8 +35,15 @@ parking_frac = float(rospy.get_param('/simple_marker/parking_frac'))
 #print(robot_description)
 air_node_display = bool(rospy.get_param('/simple_marker/air_node_display'))
 waypoint_node_display = bool(rospy.get_param('/simple_marker/waypoint_node_display'))
+buildings = str(rospy.get_param('/simple_marker/buildings'))
+display_frequency = int(rospy.get_param('/simple_marker/display_frequency'))
+if buildings == 'True':
+	buildings = True
+else:
+	buildings = False
 
 house_ID = 0
+reps = 0
 
 def processFeedback(feedback):
 	p = feedback.pose.position
@@ -299,7 +306,10 @@ class building_scape:
 			cf.update_path(p)
 
 	#response to position information, builds and updates crazyflie
+	#using reps to smooth out motion
 	def pos_respond(self, data):
+		global reps
+		reps += 1
 		if len(self.crazyflie_list) == len(data.x):
 			for id in range(len(data.x)):
 				x = data.x[id]
@@ -309,8 +319,10 @@ class building_scape:
 				if self.crazyflie_list[id] != None:
 					cf = self.crazyflie_list[id]
 					cf.update_flie((x,y,z))
-					cf.construct_flie(False)
-			self.server.applyChanges()
+					if reps%display_frequency == 0:
+						cf.construct_flie(False)
+			if reps%display_frequency == 0:
+				self.server.applyChanges()
 
 
 	def construct(self):
@@ -552,15 +564,16 @@ class tile:
 		self.flyable = f
 
 	def construct(self, int_marker):
-		if self.exitnodelist+self.park_nodes+self.land_nodes == []:
-			if self.house == None:
-				if self.theta == None:
-					theta = random.choice([0, math.pi*.5, math.pi, math.pi*1.5])
-				else:
-					theta = self.theta
-				h = house(self.x, self.y, self.z, theta)
-				self.house = h
-				thread.start_new_thread ( self.house.construct , ())
+		if buildings:
+			if self.exitnodelist+self.park_nodes+self.land_nodes == []:
+				if self.house == None:
+					if self.theta == None:
+						theta = random.choice([0, math.pi*.5, math.pi, math.pi*1.5])
+					else:
+						theta = self.theta
+					h = house(self.x, self.y, self.z, theta)
+					self.house = h
+					thread.start_new_thread ( self.house.construct , ())
 		#base
 		base_marker = Marker()
 		base_marker.type = Marker.CUBE
