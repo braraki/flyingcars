@@ -48,7 +48,7 @@ while [ $current_num2 -lt $count ]; do
 
 	#sed -i "/#difference1/r $filename1" $file
 	#sed -i -e $'s/#insertID/'$current_num$'/g' $file
-	house_num=$((3 + $current_num2 % 3))
+	house_num=$((1 + $current_num2 % 5))
 
 	sed -i "/#difference2/r $filename3" $file
 	sed -i -e $'s/#insertID/'$current_num2$'/g' $file

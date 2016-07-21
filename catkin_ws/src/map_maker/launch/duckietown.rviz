@@ -223,7 +223,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house5_description
+      Robot Description: house2_description
       TF Prefix: house11
       Update Interval: 0
       Value: true
@@ -244,7 +244,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house4_description
+      Robot Description: house1_description
       TF Prefix: house10
       Update Interval: 0
       Value: true
@@ -265,7 +265,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house3_description
+      Robot Description: house5_description
       TF Prefix: house9
       Update Interval: 0
       Value: true
@@ -286,7 +286,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house5_description
+      Robot Description: house4_description
       TF Prefix: house8
       Update Interval: 0
       Value: true
@@ -307,7 +307,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house4_description
+      Robot Description: house3_description
       TF Prefix: house7
       Update Interval: 0
       Value: true
@@ -328,7 +328,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house3_description
+      Robot Description: house2_description
       TF Prefix: house6
       Update Interval: 0
       Value: true
@@ -349,7 +349,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house5_description
+      Robot Description: house1_description
       TF Prefix: house5
       Update Interval: 0
       Value: true
@@ -370,7 +370,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house4_description
+      Robot Description: house5_description
       TF Prefix: house4
       Update Interval: 0
       Value: true
@@ -391,7 +391,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house3_description
+      Robot Description: house4_description
       TF Prefix: house3
       Update Interval: 0
       Value: true
@@ -412,7 +412,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house5_description
+      Robot Description: house3_description
       TF Prefix: house2
       Update Interval: 0
       Value: true
@@ -433,7 +433,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house4_description
+      Robot Description: house2_description
       TF Prefix: house1
       Update Interval: 0
       Value: true
@@ -454,7 +454,7 @@ Visualization Manager:
           Show Trail: false
           Value: true
       Name: RobotModel
-      Robot Description: house3_description
+      Robot Description: house1_description
       TF Prefix: house0
       Update Interval: 0
       Value: true

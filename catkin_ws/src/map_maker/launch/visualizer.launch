@@ -35,6 +35,9 @@
   <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster2" args="0 0 0 0 0 0 1 house13/body house13/roof 100" />
 
   <param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>
+
+  <param name="house1_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house1.urdf.xacro'"/>  
+  <param name="house2_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house2.urdf.xacro'"/>  
   <param name="house3_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house3.urdf.xacro'"/>
   <param name="house4_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house4.urdf.xacro'"/>
   <param name="house5_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house5.urdf.xacro'"/>
