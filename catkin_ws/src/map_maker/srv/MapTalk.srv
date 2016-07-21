@@ -5,9 +5,9 @@
 #though that has been flattened
 #the num IDs represents the number of nodes and thus the number of node IDs
 int32[] category_list
-int32[] x_list
-int32[] y_list
-int16[] z_list
+float32[] x_list
+float32[] y_list
+float32[] z_list
 int16 num_IDs
 int16[] adjacency_array
 

@@ -302,9 +302,9 @@ class building_scape:
 	def pos_respond(self, data):
 		if len(self.crazyflie_list) == len(data.x):
 			for id in range(len(data.x)):
-				x = data.x[id]/1000.0
-				y = data.y[id]/1000.0
-				z = data.z[id]/1000.0
+				x = data.x[id]
+				y = data.y[id]
+				z = data.z[id]
 				print((x,y,z))
 				if self.crazyflie_list[id] != None:
 					cf = self.crazyflie_list[id]
@@ -343,7 +343,9 @@ class building_scape:
 					if node1.category != Category.mark and node2.category != Category.mark:
 						int_marker = e.construct(int_marker)
 		
-		for t in self.tile_dict.values():
+		tiles = self.tile_dict.values()
+		random.shuffle(tiles)
+		for t in tiles:
 			int_marker = t.construct(int_marker)
 
 
@@ -750,9 +752,9 @@ def map_maker_client():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		for ID in range(num_IDs):
-			x = (x_list[ID])/1000.0
-			y = (y_list[ID])/1000.0
-			z = (z_list[ID])/1000.0
+			x = (x_list[ID])
+			y = (y_list[ID])
+			z = (z_list[ID])
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
@@ -760,9 +762,9 @@ def map_maker_client():
 			for ID in range(num_IDs, resp_complex.num_IDs):
 				c = static_category_dict[resp_complex.category_list[ID]]
 				if c == Category.waypoint:
-					x = (resp_complex.x_list[ID])/1000.0
-					y = (resp_complex.y_list[ID])/1000.0
-					z = (resp_complex.z_list[ID])/1000.0
+					x = (resp_complex.x_list[ID])
+					y = (resp_complex.y_list[ID])
+					z = (resp_complex.z_list[ID])
 					info_dict[ID] = ((x, y, z), c)
 		#print(info_dict)
 		ns = node_scape(info_dict, A, resp_complex.num_IDs)

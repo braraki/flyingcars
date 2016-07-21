@@ -361,9 +361,9 @@ class full_system:
 		z_list = data.z
 		for id in range(len(x_list)):
 			sys = self.system_list[id]
-			x = x_list[id]/1000.0
-			y = y_list[id]/1000.0
-			z = z_list[id]/1000.0
+			x = x_list[id]
+			y = y_list[id]
+			z = z_list[id]
 			sys.update_cf_pos((x, y, z))
 
 def td_planner():
@@ -387,9 +387,9 @@ def td_planner():
 		info_dict = {}
 		numberOfNodes = num_IDs
 		for ID in range(num_IDs):
-			x = (x_list[ID])/1000.0
-			y = (y_list[ID])/1000.0
-			z = (z_list[ID])/1000.0
+			x = (x_list[ID])
+			y = (y_list[ID])
+			z = (z_list[ID])
 			c = static_category_dict[category_list[ID]]
 			res_table.append([0]*numTimesteps)
 			#print(category_list[ID])

@@ -58,8 +58,8 @@ def analyse(p, times, info_dict):
 			x = (x1) + (d/float(num_divisions))*(x2 - x1)
 			y = (y1) + (d/float(num_divisions))*(y2 - y1)
 			z = (z1) + (d/float(num_divisions))*(z2 - z1)
-			spots.append((int(1000*x), int(1000*y), int(1000*z)))
-	spots.append((int(1000*x2), int(1000*y2), int(1000*z2)))
+			spots.append(x, y, z)
+	spots.append(x2, y2, z2)
 	return(spots)
 	'''
 	'''
@@ -79,7 +79,7 @@ def analyse(p, times, info_dict):
 			x = (x1) + (dt/float(delta_t))*(x2 - x1)
 			y = (y1) + (dt/float(delta_t))*(y2 - y1)
 			z = (z1) + (dt/float(delta_t))*(z2 - z1)		
-			spots[t] = (int(1000*x), int(1000*y), int(1000*z))
+			spots[t] = (x, y, z)
 		print((t,(x,y,z)))
 		last_ID = ID2
 		last_time = t2
@@ -105,7 +105,7 @@ def analyse(p, times, info_dict):
 		x = frac*(x2 - x1) + x1
 		y = frac*(y2 - y1) + y1
 		z = frac*(z2 - z1) + z1
-		spots[current_time] = (int(x*1000), int(y*1000), int(z*1000))
+		spots[current_time] = (x, y, z)
 		current_time += delay
 		current_time = round(current_time, 2)
 	#print(sorted(spots.keys()))
@@ -132,12 +132,12 @@ class system:
 			if time > self.times[len(self.times)-1]:
 				i = self.info_dict[self.path[len(self.path)-1]]
 				(x, y, z) = i[0]
-				return(x*1000, y*1000, z*1000)
+				return(x, y, z)
 			if time < self.times[0]:
 				i = self.info_dict[self.path[0]]
 				(x, y, z) = i[0]
-				return(x*1000, y*1000, z*1000)
-			return((1000,1000,1000))
+				return(x, y, z)
+			return((1,1,1))
 
 	def new_path(self, path, times):
 		if path != self.path:
@@ -224,9 +224,9 @@ def map_maker_client():
 		A.shape = (num_IDs, num_IDs)
 		info_dict = {}
 		for ID in range(num_IDs):
-			x = (x_list[ID])/1000.0
-			y = (y_list[ID])/1000.0
-			z = (z_list[ID])/1000.0
+			x = (x_list[ID])
+			y = (y_list[ID])
+			z = (z_list[ID])
 			c = static_category_dict[resp.category_list[ID]]
 			info_dict[ID] = ((x, y, z),c)
 		#print(info_dict)

@@ -862,7 +862,6 @@ for fl in A4:
 #print(A5)
 
 coordinate_list = [None]*len(ID_dict)
-w_list = [None]*len(ID_dict)
 x_list = [None]*len(ID_dict)
 y_list = [None]*len(ID_dict)
 z_list = [None]*len(ID_dict)
@@ -871,10 +870,9 @@ test_list = [1]*len(ID_dict)
 for ID in ID_dict:
 	coor = ID_dict[ID]
 	coordinate_list[ID] = coor
-	w_list[ID] = int(coor[0])
-	x_list[ID] = int(coor[0]*1000)
-	y_list[ID] = int(coor[1]*1000)
-	z_list[ID] = int(coor[2]*1000)
+	x_list[ID] = coor[0]
+	y_list[ID] = coor[1]
+	z_list[ID] = coor[2]
 	cat = category_dict[ID]
 	category_list[ID] = int(cat)
 

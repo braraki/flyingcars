@@ -128,9 +128,9 @@ class sender:
 
 		for ID in info_dict:
 			coor = info_dict[ID][0]
-			self.x_list[ID] = int(coor[0]*1000)
-			self.y_list[ID] = int(coor[1]*1000)
-			self.z_list[ID] = int(coor[2]*1000)
+			self.x_list[ID] = coor[0]
+			self.y_list[ID] = coor[1]
+			self.z_list[ID] = coor[2]
 			cat = info_dict[ID][1]
 			self.category_list[ID] = int(cat)
 
@@ -162,9 +162,9 @@ def map_maker_client():
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		for ID in range(num_IDs):
-			x = (x_list[ID])/1000.0
-			y = (y_list[ID])/1000.0
-			z = (z_list[ID])/1000.0
+			x = (x_list[ID])
+			y = (y_list[ID])
+			z = (z_list[ID])
 			c = static_category_dict[category_list[ID]]
 			#print(category_list[ID])
 			info_dict[ID] = ((x, y, z), c)
