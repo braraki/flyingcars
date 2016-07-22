@@ -97,7 +97,8 @@ def ca_star(successors, goal_test, numNodes, start_node, heuristic=lambda x: 0):
 		if parent.state not in expanded or parent.state == parent.parent.state:
 			expanded.add(parent.state)
 			if goal_test(parent.state):
-				return parent
+				child = SearchNode(parent.state, parent, parent.time+2,parent.finish+1,parent.finish+21, 0)
+				return child
 			for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
 				child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, parent.cost+cost)
 				if child_state in expanded and child_state != parent.state:
@@ -154,6 +155,8 @@ def fillResTable(node):
 			res_table[state][i] = 1
 			if node.parent != None and node.parent.parent != None:
 				res_table[node.parent.state][i] = 1
+				for j in range(node.parent.start,node.parent.finish+1):
+					res_table[state][j] = 1
 
 	if node.parent != None:
 		fillResTable(node.parent)
@@ -295,7 +298,11 @@ class system:
 		self.endNodes[end_node.state] = end_node
 
 		print end_node.verbose_path()
-		return (end_node.path(), end_node.times())
+		times = end_node.times()
+		#current_time = time.time()
+		#newTimes = [x+current_time for x in times]
+
+		return (end_node.path(), times)
 
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
@@ -322,7 +329,9 @@ class system:
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.pTimes)
 			print('published')
 			print self.cf_ID, self.p
-			print('times: '+str(self.pTimes))
+			times = self.pTimes
+			#times = [x-time.time() for x in times]
+			print('times: '+str(times))
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:

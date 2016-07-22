@@ -6,7 +6,7 @@
 
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
-  <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(arg cf_num) $(arg map) $(arg buildings)"/>
+  <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(find map_maker) $(arg cf_num) $(arg map) $(arg buildings)" output="screen"/>
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
     <param name="map_road_ratio" value=".75"/>
     <param name="map_tile_size" value=".5"/>

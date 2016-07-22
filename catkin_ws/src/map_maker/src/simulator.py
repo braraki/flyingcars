@@ -180,18 +180,19 @@ class full_system:
 		reps = 0
 		while self.go:
 			actual_time = time.time()
-			if reps%1000 == 0:
-				print('elapsed: '+str(actual_time - start_time))
-				print('sim time: '+str(current_time))
-				print('true clock time: '+str(actual_time))
+			
+			#if reps%1000 == 0:
+				#print('elapsed: '+str(actual_time - start_time))
+				#print('sim time: '+str(current_time))
+				#print('true clock time: '+str(actual_time))
 			for index in range(len(self.system_list)):
 				sys = self.system_list[index]
 
 				'''if you switch the comments for the loc line, you should be able to go
 				between the computers actual time (big numbers) and the simulated time'''
 
-				#loc = sys.get_position(current_time)
-				loc = sys.get_position(round(actual_time, 2))
+				loc = sys.get_position(current_time)
+				#loc = sys.get_position(round(actual_time, 2))
 
 
 
