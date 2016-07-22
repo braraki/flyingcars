@@ -369,10 +369,14 @@ class building_scape:
 class crazyflie:
 	def __init__(self, ID, path, server, node_scape):
 		self.ID = ID
-		self.path = path
 		self.position = None
 		self.server = server
 		self.node_scape = node_scape
+
+		self.path = []
+		for id in path:
+			if id in self.node_scape.node_ID_dict:
+				self.path.append(id)
 
 		self.int_marker2 = InteractiveMarker()
 		self.int_marker2.header.frame_id = "base_link"
@@ -426,7 +430,10 @@ class crazyflie:
 
 	def update_path(self, path):
 		if path != self.path:
-			self.path = path
+			self.path = []
+			for id in path:
+				if id in self.node_scape.node_ID_dict:
+					self.path.append(id)
 			self.construct_path()
 
 	def construct_flie(self, apply_changes = True):

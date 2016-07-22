@@ -378,11 +378,11 @@ class full_system:
 def td_planner():
 	global res_table
 	global numberOfNodes
-	rospy.wait_for_service('send_map')
+	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
 		global info_dict
-		func = rospy.ServiceProxy('send_map', MapTalk)
+		func = rospy.ServiceProxy('send_complex_map', MapTalk)
 		resp = func()
 		print('recieved')
 		category_list = resp.category_list

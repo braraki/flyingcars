@@ -246,10 +246,10 @@ class full_system:
 			sys.update_cf_pos((x, y, z))
 
 def map_maker_client():
-	rospy.wait_for_service('send_map')
+	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
-		func = rospy.ServiceProxy('send_map', MapTalk)
+		func = rospy.ServiceProxy('send_complex_map', MapTalk)
 		resp = func()
 		print('recieved')
 		category_list = resp.category_list

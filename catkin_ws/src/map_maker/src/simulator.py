@@ -21,8 +21,6 @@ import numpy as np
 import thread
 #arguments
 
-air_step_dist = float(rospy.get_param('/simulator/air_step_dist'))
-ground_step_dist = float(rospy.get_param('/simulator/ground_step_dist'))
 delay = float(rospy.get_param('/simulator/delay'))
 
 current_time = 0.0
@@ -226,10 +224,10 @@ class full_system:
 
 
 def map_maker_client():
-	rospy.wait_for_service('send_map')
+	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
-		func = rospy.ServiceProxy('send_map', MapTalk)
+		func = rospy.ServiceProxy('send_complex_map', MapTalk)
 		resp = func()
 		print('recieved')
 		x_list = resp.x_list
