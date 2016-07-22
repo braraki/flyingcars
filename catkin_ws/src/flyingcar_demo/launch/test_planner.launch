@@ -3,7 +3,7 @@
 
   <arg name="cf_num" default="1"/>
   <arg name="z_coefficient" default="3" />
-  <arg name="map" default="collision_map" />
+  <arg name="map" default="collision" />
   <arg name="planner" default="td_planner" />
   <arg name="buildings" default="True" />
 
