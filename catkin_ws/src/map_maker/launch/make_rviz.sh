@@ -1,10 +1,13 @@
 #!/bin/bash
-cf_num=$1
-map=$2
-buildings=$3
+directory=$1
+cf_num=$2
+map=$3
+buildings=$4
 echo $buildings
 
-map_file=/home/crazyflier/flyingcars/catkin_ws/src/map_maker/config/"$map".yaml
+echo $directory
+
+map_file="$directory"/config/"$map".yaml
 cat $map_file
 str='map_pre_dict:'
 line=`grep "$str" $map_file`
@@ -30,19 +33,19 @@ echo $count
 current_num=0
 
 #define rviz file as file
-file=/home/crazyflier/flyingcars/catkin_ws/src/map_maker/launch/duckietown.rviz
+file="$directory"/launch/duckietown.rviz
 
 #delete everything in file
 > $file
 #replace with base_world txt
-cat /home/crazyflier/flyingcars/catkin_ws/src/map_maker/launch/base_world.rviz >> $file
+cat "$directory"/launch/base_world.rviz >> $file
 
 #filename1=/home/crazyflier/flyingcars/catkin_ws/src/map_maker/launch/difference.txt
 
 if [ $buildings == 'True' ] ; then
 	current_num2=0
 
-	filename3=/home/crazyflier/flyingcars/catkin_ws/src/map_maker/launch/house_insert.txt
+	filename3="$directory"/launch/house_insert.txt
 
 	while [ $current_num2 -lt $count ]; do
 
@@ -59,7 +62,7 @@ if [ $buildings == 'True' ] ; then
 fi
 
 
-filename2=/home/crazyflier/flyingcars/catkin_ws/src/map_maker/launch/difference2.txt
+filename2="$directory"/launch/difference2.txt
 
 while [ $current_num -lt $cf_num ]; do
 

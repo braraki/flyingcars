@@ -176,12 +176,14 @@ class system:
 
 
 	def make_times(self):
-		#global current_time
+		global current_time
 		self.times = []
+
 
 		'''switch # to change between timing methods'''
 		#time1 = current_time + 1
 		time1 = time.time() + 1
+
 
 
 

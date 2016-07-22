@@ -178,10 +178,11 @@ class full_system:
 		reps = 0
 		while self.go:
 			actual_time = time.time()
-			if reps%1000 == 0:
-				print('elapsed: '+str(actual_time - start_time))
-				print('sim time: '+str(current_time))
-				print('true clock time: '+str(actual_time))
+			
+			#if reps%1000 == 0:
+				#print('elapsed: '+str(actual_time - start_time))
+				#print('sim time: '+str(current_time))
+				#print('true clock time: '+str(actual_time))
 			for index in range(len(self.system_list)):
 				sys = self.system_list[index]
 
