@@ -178,8 +178,13 @@ class system:
 	def make_times(self):
 		#global current_time
 		self.times = []
+
+		'''switch # to change between timing methods'''
 		#time1 = current_time + 1
 		time1 = time.time() + 1
+
+
+
 		self.times.append(time1)
 		for p_i in range(len(self.p)-1):
 			ID1 = self.p[p_i]
