@@ -9,5 +9,7 @@
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
   </node>
 
+  <node name="easy_sg" pkg="planner" type="easy_sg.py"/>
+
 </launch>
 

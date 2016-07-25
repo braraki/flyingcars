@@ -32,8 +32,6 @@
   <node name="simulator" pkg="map_maker" type="simulator.py" output="screen">
   	<param name="delay" value=".01"/>
   </node>
-  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 0 0 0 1 house13/ground house13/body 100" />
-  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster2" args="0 0 0 0 0 0 1 house13/body house13/roof 100" />
 
   <param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>
 
