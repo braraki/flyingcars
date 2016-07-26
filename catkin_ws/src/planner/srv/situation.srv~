@@ -3,5 +3,6 @@ int32 cf_ID
 int32 start_ID
 int32 end_ID
 
-#start IDs represent the starting position of a passanger (index is passanger's ID)
-#end IDs represent corresponding passangers end goal
+#send the ID of a cf
+#will respond with a starting and ending node ID for a path
+

@@ -54,18 +54,20 @@ planning_time = 2
 wait_time = .1
 
 class SearchNode:
-	def __init__(self, state, parent, time, cost=0):
+	def __init__(self, state, parent, time, cost=0, interval=None):
 		self.state = state
 		self.parent = parent
 		self.time = time
 		self.cost = cost
+		self.interval = interval
 
 	def path(self):
 		if self.parent == None:
 			return [(self.state, self.time)]
 		else:
 			return self.parent.path() + [(self.state, self.time)]
-	
+
+
 class PriorityQueue:
 	def __init__(self):
 		self.data = []
@@ -78,33 +80,60 @@ class PriorityQueue:
 		return len(self.data) == 0
  
 def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
+	planning_start_time = time.time()
 	start_time = time.time()+planning_time
 	if goal_test(start_state, start_time):
 		return [start_state]
-	start_node = SearchNode(start_state, None, start_time , 0)
+	start_node = SearchNode(start_state, None, start_time , 0, find_interval(start_state, start_time))
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
-	expanded = set()
+	expanded = {}
 	reps = 0
 	while not agenda.is_empty():
 		reps += 1
 		#print(reps)
 		parent = agenda.pop()
-		if parent.state not in expanded:
-			expanded.add(parent.state)
+		cont = False
+		if (parent.state, parent.interval) not in expanded:
+			expanded[(parent.state, parent.interval)] = parent.time
+			cont = True
+		elif expanded[(parent.state, parent.interval)] > parent.time:
+			expanded[(parent.state, parent.interval)] = parent.time
+			cont = True
+		if cont:
 			if goal_test(parent.state, parent.time):
+				planning_end_time = time.time()
+				print('time to plan')
+				print(planning_end_time - planning_start_time)
 				return parent.path()
-			for child_state, t, cost in successors(parent.state, parent.time):
+			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
 				ID = child_state
-				if child_state == parent.state and reps == 1:
-					print('start wait possible')
-				child = SearchNode(child_state, parent, t, parent.cost+cost)
-				#if child_state in expanded:
-				#	continue
+				child = SearchNode(child_state, parent, t, parent.cost+cost, interval)
 				agenda.push(child, child.cost+heuristic(child_state))
-	#print('first successors')
-	#print(successors(start_state, start_time))
+
+	print('reps')
+	print(reps)
+	print('start')
+	print((start_state, start_time))
+	print('first successors')
+	#s1 = (successors(start_state, start_time))
+	#print(s1)
+	#for (spot, t, dt) in s1:
+	#	s2 = (successors(spot, t))
+	#	print(s2)
+	#	for (spot2, t2, dt2) in s2:
+	#		print(successors(spot2, t2))
 	return None
+
+def find_interval(state, time):
+	my_intervals = si_dict[state]
+	my_interval = None
+	for i in my_intervals:
+		if i[0] <= time <= i[1]:
+			print(i)
+			return(i)
+	print('interval not found')
+	print('AAAAAAAAAAAAAAAAAAA')
 
 #single crazyflie
 class system:
@@ -152,28 +181,54 @@ class system:
 		(ID1, ID2) = self.request_situation()
 		self.end_pos = self.info_dict[ID2][0]
 		p = self.find_path(ID1, ID2)
-		return(p)
+		p2 = self.edit_path(p)
+		return(p2)
 		
 	def request_situation(self):
 		global count
 		print(count)
 		count += 1
-		print('situation asking')
+		#print('situation asking')
 		rospy.wait_for_service('send_situation')
 		try:
-			print('calling')
+			#print('calling')
 			func = rospy.ServiceProxy('send_situation', situation)
 			resp = func(self.cf_ID)
 			return((resp.start_ID, resp.end_ID))
 		except rospy.ServiceException, e:
-			print("service call failed")
+			t = 1
+			#print("service call failed")
 
+	def edit_path(self, p):
+		new_path = []
+		for index in range(len(p) - 1):
+			(ID1, t1) = p[index]
+			(ID2, t2) = p[index+1]
+			(x1, y1, z1) = self.info_dict[ID1][0]
+			c1 = self.info_dict[ID1][1]
+			(x2, y2, z2) = self.info_dict[ID2][0]
+			c2 = self.info_dict[ID2][1]
+			dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
+			if c1 == Category.cloud or c2 == Category.cloud or c1 == Category.interface or c2 == Category.interface:
+				v = air_vel
+			else:
+				v = land_vel
+			expected_time = dist/float(v)
+			true_time = t2 - t1
+			new_path.append((ID1, t1))
+			if true_time - expected_time > .0002:
+				new_path.append((ID1, t2 - expected_time))
+				print('waited')
+		new_path.append(p[len(p) - 1])
+		return(new_path)
 
 	def find_path(self, ID1, end_ID):
 		#print('find path')
 		(x2, y2, z2) = self.info_dict[end_ID][0]
-		
-		def successors(state, time):
+		'''
+		def successors(state, t):
+			#update visit dict
+			visit_dict[state] += 1
 			#time = state[1]
 			(x1, y1, z1) = self.info_dict[state][0]
 			c1 = self.info_dict[state][1]
@@ -183,7 +238,7 @@ class system:
 				if value == 1:
 					(fx, fy, fz) = self.info_dict[ID2][0]
 					c2 = self.info_dict[ID2][1]
-					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
 					if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
 						v = air_vel
 					else:
@@ -191,7 +246,7 @@ class system:
 					time_passed = dist_traveled/float(v)
 					if dist_traveled == 0:#state == ID2:
 						time_passed = wait_time
-					current_time = time + time_passed
+					current_time = t + time_passed
 					safe_intervals = si_dict[ID2]
 					for interval in safe_intervals:
 						if interval[0] < current_time < interval[1]:
@@ -201,22 +256,31 @@ class system:
 			#print(sucs)
 			return(sucs)
 		'''
-		def successors(state, time):
+		def successors(state, time, my_interval):
+			#print(" ")
+			#print('successors')
+			#print((state, time))
 			#time = state[1]
 			(x1, y1, z1) = self.info_dict[state][0]
 			c1 = self.info_dict[state][1]
 			sucs = []
 			row = self.adj_array[state]
+			'''
 			my_intervals = si_dict[state]
+			my_interval = None
 			for i in my_intervals:
 				if i[0] <= time <= i[1]:
 					my_interval = i
+			if my_interval == None:
+				print('interval not found')
+				print(si_dict[state])
+			'''
 			for (ID2, value) in enumerate(row):
 				if value == 1:
 					if ID2 != state:
 						(fx, fy, fz) = self.info_dict[ID2][0]
 						c2 = self.info_dict[ID2][1]
-						dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + z_coefficient*(z1-fz)**2)**.5
+						dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
 						if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
 							v = air_vel
 						else:
@@ -227,29 +291,32 @@ class system:
 						for interval in safe_intervals:
 							if interval[0] < current_time < interval[1]:
 								suc_state = ID2
-								sucs.append((suc_state, current_time, time_passed))
-								break
-							elif interval[1] < my_interval[1]:
+								sucs.append((suc_state, current_time, time_passed, interval))
+								#elif interval[1] < my_interval[1] and interval[0] < interval[1] - 2*space_time:
+							elif interval[0] < my_interval[1]:
 								suc_state = ID2
-								sucs.append((suc_state, interval[0], interval[0] - time))
+								arrival_time = max(current_time, interval[0])
+								if arrival_time < interval[1] - space_time:
+									sucs.append((suc_state, arrival_time, arrival_time - time, interval))
 			#print(sucs)
 			return(sucs)
-		'''
-		def goal_test(state, time):
+			
+		def goal_test(state, t):
 			#print(id)
 			if end_ID == state:
 				safe_intervals = si_dict[state]
 				for interval in safe_intervals:
-					if interval[0] + space_time< time < interval[1] - (space_time + planning_time):
+					if interval[0] + space_time< t < interval[1] - (space_time + planning_time):
 						return  True
 			return(False)
-		def eta(state):
+
+		def heur(state):
 			(x1, y1, z1) = self.info_dict[state][0]
 			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
 			time_heur = dist/float(air_vel)
 			return(time_heur)
 
-		return(a_star(successors, ID1, goal_test, eta))
+		return(a_star(successors, ID1, goal_test, heur))
 
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
@@ -309,6 +376,9 @@ class system:
 			last = False
 			if index == len(self.p) - 1:
 				last = True
+			else:
+				next_t = self.times[index + 1]
+				next_ID = self.p[index + 1]
 			ID = self.p[index]
 			t = self.times[index]
 			#print(t)
@@ -325,7 +395,9 @@ class system:
 						high_split = t + space_time
 						if last:
 							#print('last')
-							high_split += (planning_time - space_time - .1)
+							high_split = t #+ (planning_time - .1 - space_time*2)
+						elif next_ID == ID:
+							high_split = max(next_t, t + space_time)
 						if low_split > start_time:
 							new_intervals.append((start_time, low_split))
 						if high_split < interval[1]:
@@ -351,7 +423,7 @@ class full_system:
 	def analyse_adj_array(self):
 		for (ID1, row) in enumerate(self.adj_array):
 			suc = []
-			if self.info_dict[ID1][1]== Category.park:
+			if self.info_dict[ID1][1]== Category.waypoint:
 				for (ID2, value) in enumerate(row):
 					if value == 1:
 						suc.append(self.info_dict[ID2])
