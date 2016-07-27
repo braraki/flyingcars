@@ -8,7 +8,7 @@
 
   <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(find map_maker) $(arg cf_num) $(arg map) $(arg buildings)" output="screen"/>
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
-    <param name="map_road_ratio" value=".75"/>
+    <param name="map_road_ratio" value=".5"/>
     <param name="map_tile_size" value=".5"/>
     <param name="map_interface_height" value=".75"/>
     <param name="map_cloud_height" value="1.25"/>
@@ -23,7 +23,7 @@
   <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
   	<param name="tilethickness" value=".05"/>
   	<param name="roadthickness" value=".025"/>
-  	<param name="parking_frac" value="1"/>
+  	<param name="parking_frac" value=".7"/>
   	<param name="air_node_display" value="False"/>
   	<param name="waypoint_node_display" value="False"/>
     <param name="buildings" value="$(arg buildings)"/>

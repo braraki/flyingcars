@@ -338,7 +338,7 @@ class building_scape:
 		int_marker = InteractiveMarker()
 		int_marker.header.frame_id = "base_link"
 		int_marker.name = "my_marker"
-
+		
 		for n in self.node_scape.node_list:
 			if n.category != Category.mark:
 				if air_node_display:
@@ -640,16 +640,28 @@ class tile:
 			cylinder_marker.color.r = 0.2
 			cylinder_marker.color.g = 0.2
 			cylinder_marker.color.b = 0.2
-			cylinder_marker.color.a = 1.0
-			
-			cylinder_marker.pose.position.x = n.x
-			cylinder_marker.pose.position.y = n.y
+			cylinder_marker.color.a = 1.0			
+			if n.x - self.x == 0:
+				x_center = 0
+			elif (abs(n.x - self.x)-.25*self.length*self.road_ratio) < .01:
+				x_center = n.x - self.x
+			else:
+				x_center = abs(n.x - self.x)/float(n.x - self.x)*self.road_ratio*self.length*.5
+			if n.y - self.y == 0:
+				y_center = 0
+			elif (abs(n.y - self.y)-.25*self.width*self.road_ratio) < .01:
+				y_center = n.y - self.y
+			else:
+				y_center = abs(n.y - self.y)/float(n.y - self.y)*self.road_ratio*self.width*.5
+			cylinder_marker.pose.position.x = self.x + x_center
+			cylinder_marker.pose.position.y = self.y + y_center
 			cylinder_marker.pose.position.z = -.5*roadthickness+self.z
 
 			cylinder_control = InteractiveMarkerControl()
 			cylinder_control.always_visible = True
 			cylinder_control.markers.append( cylinder_marker )
 			int_marker.controls.append(cylinder_control)
+
 
 		#road
 		for letter in self.exitnodelist:

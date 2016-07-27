@@ -28,7 +28,7 @@ used_park_IDs = []
 cf_num = int(rospy.get_param('/si_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
 land_vel = .25#0.025 #m/s
-air_vel = .25#0.05
+air_vel = .5#0.05
 
 si_dict = {}
 
@@ -49,7 +49,7 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 ##get_true_connection_dict function
 
 #current_time = 0.0
-space_time = .5
+space_time = .75
 planning_time = 2
 wait_time = .1
 
@@ -395,7 +395,7 @@ class system:
 			#print(t)
 			intervals = si_dict[ID]
 			new_intervals = []
-			print(intervals)
+			#print(intervals)
 			for interval in intervals:
 				if interval[1] > purge_time:
 					if interval[0] < purge_time:
@@ -406,7 +406,7 @@ class system:
 						low_split = t - space_time
 						high_split = t + space_time
 						if last:
-							print('last')
+							#print('last')
 							high_split = t #+ (planning_time - .1 - space_time*2)
 						else:
 							high_split = max(next_t, t + space_time)
@@ -421,9 +421,9 @@ class system:
 					else:
 						new_intervals.append((start_time, interval[1]))
 			si_dict[ID] = new_intervals
-			print(t)
-			print(new_intervals)
-			print(" ")
+			#print(t)
+			#print(new_intervals)
+			#print(" ")
 		#print(si_dict)
 
 class full_system:
