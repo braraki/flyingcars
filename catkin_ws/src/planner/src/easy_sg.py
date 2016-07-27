@@ -53,15 +53,21 @@ def get_remaining():
 				not_start.append(ID)
 		elif ID not in finishers:
 			not_fin.append(ID)
-	return(true_remains, not_start, not_fin)
+	return((true_remains, not_start, not_fin))
 
-def select_ID(true_remains, not_start, not_fin):
+def select_ID(true_remains, not_start, not_fin, start=False):
 	if len(true_remains)>0:
 		return(random.choice(true_remains))
-	if len(not_fin)>0:
-		return(random.choice(not_fin))
-	if len(not_start)>0:
-		return(random.choice(not_start))
+	if start:
+		list1 = not_start
+		list2 = not_fin
+	else:
+		list1 = not_fin
+		list2 = not_start
+	if len(list1)>0:
+		return(random.choice(list1))
+	if len(list2)>0:
+		return(random.choice(list2))
 	return(random.choice(park_dict.keys()))
 
 def generate_spots(cf_ID):
@@ -73,7 +79,7 @@ def generate_spots(cf_ID):
 		start = spots[1]
 		end = select_ID(true_remains, not_start, not_fin)
 	else:
-		start = select_ID(true_remains, not_start, not_fin)
+		start = select_ID(true_remains, not_start, not_fin, True)
 		if start in true_remains:
 			true_remains.remove(start)
 		if start in not_start:
@@ -82,6 +88,8 @@ def generate_spots(cf_ID):
 			not_fin.remove(start)
 		end = select_ID(true_remains, not_start, not_fin)
 	in_use[cf_ID] = (start, end)
+	print('start and end')
+	print((start, end))
 	return((start, end))
 
 def response(req):
@@ -90,17 +98,17 @@ def response(req):
 
 def info_sender():
 	s = rospy.Service('send_situation', situation, response)
-	print('ready to send info back')
+	#print('ready to send info back')
 	rospy.spin()
 
 def map_maker_client():
 	global park_dict
 	rospy.wait_for_service('send_map')
 	try:
-		print('calling')
+		#print('calling')
 		func = rospy.ServiceProxy('send_map', MapTalk)
 		resp = func()
-		print('recieved')
+		#print('recieved')
 		category_list = resp.category_list
 		x_list = resp.x_list
 		y_list = resp.y_list
@@ -118,10 +126,11 @@ def map_maker_client():
 				park_dict[ID] = (x, y, z)
 		info_sender()
 	except rospy.ServiceException, e:
-		print("service call failed")
+		t=1
+		#print("service call failed")
 
 
 if __name__ == "__main__":
 	rospy.init_node('easy_sg')
-	print('test')
+	#print('test')
 	map_maker_client()

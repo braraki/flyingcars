@@ -28,7 +28,7 @@ used_park_IDs = []
 cf_num = int(rospy.get_param('/si_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
 land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
+air_vel = .25#0.05
 
 si_dict = {}
 
@@ -49,7 +49,7 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 ##get_true_connection_dict function
 
 #current_time = 0.0
-space_time = 1
+space_time = .5
 planning_time = 2
 wait_time = .1
 
@@ -105,6 +105,7 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				planning_end_time = time.time()
 				print('time to plan')
 				print(planning_end_time - planning_start_time)
+				print(parent.path())
 				return parent.path()
 			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
 				ID = child_state
@@ -289,15 +290,19 @@ class system:
 						current_time = time + time_passed
 						safe_intervals = si_dict[ID2]
 						for interval in safe_intervals:
-							if interval[0] < current_time < interval[1]:
+							if interval[0] + space_time < current_time < interval[1] - space_time:
 								suc_state = ID2
 								sucs.append((suc_state, current_time, time_passed, interval))
 								#elif interval[1] < my_interval[1] and interval[0] < interval[1] - 2*space_time:
+							#if state overlaps
 							elif interval[0] < my_interval[1]:
 								suc_state = ID2
-								arrival_time = max(current_time, interval[0])
-								if arrival_time < interval[1] - space_time:
-									sucs.append((suc_state, arrival_time, arrival_time - time, interval))
+								arrival_time = max(current_time, interval[0] + space_time)
+								#check that leaving is allowed
+								if my_interval[0] < arrival_time < my_interval[1]:
+									#if we can arrive in time
+									if interval[0] <= arrival_time < interval[1] - space_time:
+										sucs.append((suc_state, arrival_time, arrival_time - time, interval))
 			#print(sucs)
 			return(sucs)
 			
@@ -374,16 +379,23 @@ class system:
 		#print(" ")
 		for index in range(len(self.p)):
 			last = False
+			first = False
 			if index == len(self.p) - 1:
 				last = True
 			else:
 				next_t = self.times[index + 1]
 				next_ID = self.p[index + 1]
+			if index == 0:
+				first = True
+			else:
+				last_t = self.times[index - 1]
+				last_ID = self.p[index - 1]
 			ID = self.p[index]
 			t = self.times[index]
 			#print(t)
 			intervals = si_dict[ID]
 			new_intervals = []
+			print(intervals)
 			for interval in intervals:
 				if interval[1] > purge_time:
 					if interval[0] < purge_time:
@@ -394,10 +406,14 @@ class system:
 						low_split = t - space_time
 						high_split = t + space_time
 						if last:
-							#print('last')
+							print('last')
 							high_split = t #+ (planning_time - .1 - space_time*2)
-						elif next_ID == ID:
+						else:
 							high_split = max(next_t, t + space_time)
+						if first:
+							low_split = low_split
+						else:
+							low_split = min(t - space_time, last_t)
 						if low_split > start_time:
 							new_intervals.append((start_time, low_split))
 						if high_split < interval[1]:
@@ -405,9 +421,9 @@ class system:
 					else:
 						new_intervals.append((start_time, interval[1]))
 			si_dict[ID] = new_intervals
-			#print(t)
-			#print(new_intervals)
-			#print(" ")
+			print(t)
+			print(new_intervals)
+			print(" ")
 		#print(si_dict)
 
 class full_system:
