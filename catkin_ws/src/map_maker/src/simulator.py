@@ -158,7 +158,7 @@ class full_system:
 
 	def runner(self):
 		rospy.Subscriber('~time_path_topic', HiPathTime, self.act)
-		print('in runner')
+		#print('in runner')
 		rospy.spin()
 
 	#assigns path info
@@ -189,8 +189,8 @@ class full_system:
 				'''if you switch the comments for the loc line, you should be able to go
 				between the computers actual time (big numbers) and the simulated time'''
 
-				loc = sys.get_position(current_time)
-				#loc = sys.get_position(round(actual_time, 2))
+				#loc = sys.get_position(current_time)
+				loc = sys.get_position(round(actual_time, 2))
 
 
 
@@ -218,7 +218,7 @@ class full_system:
 			self.go = True
 			#self.sub_run()
 			thread.start_new_thread ( self.sub_run , ())
-			print('thread initialized')
+			#print('thread initialized')
 
 
 
@@ -226,10 +226,10 @@ class full_system:
 def map_maker_client():
 	rospy.wait_for_service('send_complex_map')
 	try:
-		print('calling')
+		#print('calling')
 		func = rospy.ServiceProxy('send_complex_map', MapTalk)
 		resp = func()
-		print('recieved')
+		#print('recieved')
 		x_list = resp.x_list
 		y_list = resp.y_list
 		z_list = resp.z_list
@@ -248,10 +248,10 @@ def map_maker_client():
 		fs = full_system(info_dict, A)
 		fs.runner()
 	except rospy.ServiceException, e:
-		print("service call failed")
+		print("service call failed: "+str(e))
 
 
 if __name__ == "__main__":
-	print('test')
+	#print('test')
 	rospy.init_node("sim_node")	
 	map_maker_client()

@@ -218,6 +218,7 @@ class tile:
 		dx = 0
 		dy = 0
 		#normal road
+		'''
 		if len(self.exitnodelist) == 2:
 			straight = False
 			if 'N' in self.exitnodelist and 'S' in self.exitnodelist:
@@ -277,6 +278,79 @@ class tile:
 					n1.add_successor(n)
 				elif (angle - n.angle)%360 == 45:
 					n.add_successor(n1)
+		'''
+		left_x_dist = .5*self.length*(1 - self.road_ratio)
+		left_y_dist = .5*self.width*(1 - self.road_ratio)
+		road_x_dist = self.length*self.road_ratio
+		road_y_dist = self.width*self.road_ratio
+		if len(self.exitnodelist) == 2:
+			straight = False
+			if 'N' in self.exitnodelist and 'S' in self.exitnodelist:
+				dx = .5*(road_x_dist + left_x_dist)
+				straight = True
+			elif 'E' in self.exitnodelist and 'W' in self.exitnodelist:
+				dy = .5*(road_y_dist + left_y_dist)
+				straight = True
+			elif 'N' in self.exitnodelist and 'E' in self.exitnodelist:
+				road_x = -1*.25*road_x_dist
+				road_y = -1*.25*road_y_dist
+				space_x = -1*.5*(.5*road_x_dist + left_x_dist)
+				space_y = -1*.5*(.5*road_y_dist + left_y_dist)
+			elif 'W' in self.exitnodelist and 'N' in self.exitnodelist:
+				road_x = 1*.25*road_x_dist
+				road_y = -1*.25*road_y_dist
+				space_x = 1*.5*(.5*road_x_dist + left_x_dist)
+				space_y = -1*.5*(.5*road_y_dist + left_y_dist)
+			elif 'S' in self.exitnodelist and 'W' in self.exitnodelist:
+				road_x = 1*.25*road_x_dist
+				road_y = 1*.25*road_y_dist
+				space_x = 1*.5*(.5*road_x_dist + left_x_dist)
+				space_y = 1*.5*(.5*road_y_dist + left_y_dist)
+			elif 'E' in self.exitnodelist and 'S' in self.exitnodelist:
+				road_x = -1*.25*road_x_dist
+				road_y = 1*.25*road_y_dist
+				space_x = -1*.5*(.5*road_x_dist + left_x_dist)
+				space_y = 1*.5*(.5*road_y_dist + left_y_dist)
+			if straight:
+				n1 = node(self.x + dx, self.y + dy, self.elevation, get_rud_angle(dx, dy))
+				n1.add_category(Category.park)
+				n2 = node(self.x - dx, self.y - dy, self.elevation, get_rud_angle(-1*dx, -1*dy))
+				n2.add_category(Category.park)
+			else:
+				n1 = node(self.x + road_x + space_x, self.y + road_y, self.elevation, get_rud_angle(road_x, road_y))
+				n1.add_category(Category.park)
+				n2 = node(self.x + road_x, self.y + road_y + space_y, self.elevation, get_rud_angle(road_x, road_y))
+				n2.add_category(Category.park)
+			for n3 in self.node_list:
+				if n3.angle == n1.angle:
+					n3.add_successor(n1)
+					n1.add_successor(n3)
+				if n3.angle == n2.angle:
+					n3.add_successor(n2)
+					n2.add_successor(n3)
+			self.node_list.append(n1)
+			self.node_list.append(n2)
+
+		#3 way intersection and dead-end
+		elif len(self.exitnodelist) == 3 or len(self.exitnodelist) == 1 and 'C' not in self.exitnodelist:
+			if 'N' not in self.exitnodelist and 'S' in self.exitnodelist:
+				dy = .5*(road_y_dist + left_y_dist)
+			elif 'S' not in self.exitnodelist and 'N' in self.exitnodelist:
+				dy = -1*.5*(road_y_dist + left_y_dist)
+			elif 'E' not in self.exitnodelist and 'W' in self.exitnodelist:
+				dx = .5*(road_x_dist + left_x_dist)
+			elif 'W' not in self.exitnodelist and 'E' in self.exitnodelist:
+				dx = -1*.5*(road_x_dist + left_x_dist)
+			angle = get_rud_angle(dx, dy)
+			n1 = node(self.x + dx, self.y + dy, self.elevation, angle)
+			n1.add_category(Category.park)
+			self.node_list.append(n1)
+			for n in self.node_list:
+				if (n.angle - angle)%360 == 45:
+					n1.add_successor(n)
+				elif (angle - n.angle)%360 == 45:
+					n.add_successor(n1)
+
 
 	#add mark nodes
 	def add_mark_nodes(self):
