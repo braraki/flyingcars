@@ -237,6 +237,9 @@ class building_scape:
 		self.tile_dict = {}
 		self.crazyflie_list = []
 		self.cf_num = None
+		self.server = InteractiveMarkerServer("simple_marker")
+		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 
 	#does all of the tile work (roadratio, flyable, etc.)
 	def build_tiles(self):
@@ -310,35 +313,39 @@ class building_scape:
 	def pos_respond(self, data):
 		global reps
 		reps += 1
-		if len(self.crazyflie_list) == len(data.x):
-			for id in range(len(data.x)):
-				x = data.x[id]
-				y = data.y[id]
-				z = data.z[id]
-				print((x,y,z))
-				if self.crazyflie_list[id] != None:
-					cf = self.crazyflie_list[id]
-					cf.update_flie((x,y,z))
-					if reps%display_frequency == 0:
-						cf.construct_flie(False)
-			if reps%display_frequency == 0:
+		if reps%display_frequency == 0:
+			if len(self.crazyflie_list) == len(data.x):
+				for id in range(len(data.x)):
+					x = data.x[id]
+					y = data.y[id]
+					z = data.z[id]
+					print((x,y,z))
+					if self.crazyflie_list[id] != None:
+						cf = self.crazyflie_list[id]
+						cf.update_flie((x,y,z))
+						if reps%display_frequency == 0:
+							cf.construct_flie(False)
 				self.server.applyChanges()
 
+	def fluid_construct(self):
+		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
+		#self.server = InteractiveMarkerServer("simple_marker")
+		#rospy.spin()
 
 	def construct(self):
 		#self.node_scape.construct()
+		
+		#rospy.Subscriber('~path_topic', HiPath, self.respond)
+		#rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
+		
+		#thread.start_new_thread ( self.fluid_construct , ())
 
-		self.server = InteractiveMarkerServer("simple_marker")
-		
-		rospy.Subscriber('~path_topic', HiPath, self.respond)
-		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
-		
-		
 		# create an interactive marker for our server
 		int_marker = InteractiveMarker()
 		int_marker.header.frame_id = "base_link"
 		int_marker.name = "my_marker"
-		
+		'''
 		for n in self.node_scape.node_list:
 			if n.category != Category.mark:
 				if air_node_display:
@@ -346,7 +353,7 @@ class building_scape:
 				elif n.category != Category.cloud and n.category != Category.interface:
 					int_marker = n.construct(int_marker)
 			# 'commit' changes and send to all clients
-		
+		'''
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
@@ -359,10 +366,10 @@ class building_scape:
 		random.shuffle(tiles)
 		for t in tiles:
 			int_marker = t.construct(int_marker)
+		self.construct_2(int_marker)
 
-
+	def construct_2(self, int_marker):
 		self.server.insert(int_marker, processFeedback)
-
 		self.server.applyChanges()
 		rospy.spin()
 

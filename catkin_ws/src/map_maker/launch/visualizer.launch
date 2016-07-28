@@ -20,7 +20,7 @@
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
   	<param name="ideal_way_point_d" value=".15"/>
   </node>
-  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
+  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py" output="screen">
   	<param name="tilethickness" value=".05"/>
   	<param name="roadthickness" value=".025"/>
   	<param name="parking_frac" value=".7"/>
@@ -42,6 +42,6 @@
   <param name="house5_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/house5.urdf.xacro'"/>
 
   <!-- run rviz -->
-  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find map_maker)/launch/duckietown.rviz" required="true" />
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find map_maker)/launch/duckietown.rviz" required="true" output="screen"/>
 
 </launch>
