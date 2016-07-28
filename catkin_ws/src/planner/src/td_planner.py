@@ -97,7 +97,7 @@ def ca_star(successors, goal_test, numNodes, start_node, heuristic=lambda x: 0):
 		if parent.state not in expanded or parent.state == parent.parent.state:
 			expanded.add(parent.state)
 			if goal_test(parent.state):
-				child = SearchNode(parent.state, parent, parent.time+2,parent.finish+1,parent.finish+21, 0)
+				child = SearchNode(parent.state, parent, parent.time+4,parent.finish+1,parent.finish+21, 0)
 				return child
 			for child_state, cost, travel_time,start,finish in successors(parent.state,parent.time):
 				child = SearchNode(child_state, parent, parent.time+travel_time,start,finish, parent.cost+cost)
@@ -142,6 +142,17 @@ def successors(info_dict,adj_array):
 				#print ID2, res_list
 		return(sucs)
 	return __inner
+
+def updateNodes(node, time):
+	print node.state, time
+	node.time = node.time + time
+	(kjd, addIndex) = timeToIndices(0,time)
+	node.finish = node.finish + addIndex
+	# don't shift start index forward if this is the first node
+	if node.parent != None:
+		node.start = node.start + addIndex
+		node.parent = updateNodes(node.parent, time)
+	return node
 
 def fillResTable(node):
 	global res_table
@@ -218,6 +229,7 @@ class system:
 		self.agenda = PriorityQueue()
 		self.expanded = set()
 		self.start_time = rospy.get_time()
+		self.run_times = []
 		for id in self.info_dict:
 			info = self.info_dict[id]
 			c = info[1]
@@ -292,7 +304,12 @@ class system:
 		else:
 			start_node =SearchNode(ID1, None, 0, 0, 0, 0)
 
+		start_time = time.time()
 		end_node = ca_star(successors(self.info_dict,self.adj_array), goal_test, len(info_dict),start_node, true_dist)
+		end_time = time.time()
+		timeToRun = end_time - start_time
+		print "time to run: %f" % (timeToRun)
+		#end_node = updateNodes(end_node, timeToRun)
 		fillResTable(end_node)
 		#print self.shortestPaths
 		self.endNodes[end_node.state] = end_node
