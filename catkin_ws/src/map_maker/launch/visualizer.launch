@@ -18,19 +18,19 @@
     <rosparam command="load" file="$(find map_maker)/config/$(arg map).yaml" />
   </node>
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
-  	<param name="ideal_way_point_d" value=".15"/>
+    <param name="ideal_way_point_d" value=".15"/>
   </node>
-  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py" output="screen">
-  	<param name="tilethickness" value=".05"/>
-  	<param name="roadthickness" value=".025"/>
-  	<param name="parking_frac" value=".7"/>
-  	<param name="air_node_display" value="False"/>
-  	<param name="waypoint_node_display" value="False"/>
+  <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
+    <param name="tilethickness" value=".05"/>
+    <param name="roadthickness" value=".025"/>
+    <param name="parking_frac" value=".7"/>
+    <param name="air_node_display" value="False"/>
+    <param name="waypoint_node_display" value="False"/>
     <param name="buildings" value="$(arg buildings)"/>
     <param name="display_frequency" value="4"/>
   </node>
   <node name="simulator" pkg="map_maker" type="simulator.py">
-  	<param name="delay" value=".01"/>
+    <param name="delay" value=".01"/>
   </node>
 
   <param name="robot_description" command="$(find xacro)/xacro '$(find map_maker)/urdf/crazyflie2.urdf.xacro'"/>

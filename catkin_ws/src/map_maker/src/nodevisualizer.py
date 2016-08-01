@@ -238,7 +238,7 @@ class building_scape:
 		self.crazyflie_list = []
 		self.cf_num = None
 		self.server = InteractiveMarkerServer("simple_marker")
-		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 
 	#does all of the tile work (roadratio, flyable, etc.)
@@ -328,7 +328,7 @@ class building_scape:
 				self.server.applyChanges()
 
 	def fluid_construct(self):
-		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 		#self.server = InteractiveMarkerServer("simple_marker")
 		#rospy.spin()
@@ -336,7 +336,7 @@ class building_scape:
 	def construct(self):
 		#self.node_scape.construct()
 		
-		#rospy.Subscriber('~path_topic', HiPath, self.respond)
+		#rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		#rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 		
 		#thread.start_new_thread ( self.fluid_construct , ())

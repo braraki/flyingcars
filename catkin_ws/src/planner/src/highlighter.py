@@ -24,6 +24,7 @@ import thread
 
 cf_num = int(rospy.get_param('/highlighter/cf_num'))
 z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
+continuous = bool(rospy.get_param('/highlighter/continuous'))
 land_vel = .25#0.025 #m/s
 air_vel = .5#0.05
 
@@ -88,11 +89,10 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 
 #single crazyflie
 class system:
-	def __init__(self, adj_array, info_dict, cf_ID, pub, pubTime):
+	def __init__(self, adj_array, info_dict, cf_ID, pubTime):
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.cf_ID = cf_ID
-		self.pub = pub
 		self.pubTime = pubTime
 		self.end_pos = None
 		self.cf_pos = None
@@ -141,7 +141,7 @@ class system:
 			dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
 			return(dist)
 		return(a_star(successors, ID1, goal_test, dist))
-
+	'''
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
 		self.cf_pos = pos
@@ -159,19 +159,24 @@ class system:
 			#print(dist)
 			return(dist < .02)
 		return(False)
+	'''
+
+	def is_finished(self):
+		last_time = self.times[len(self.times) - 1]
+		return(time.time() > last_time)
 
 	def publish_new_path(self):
 		self.p = self.generate_random_path()
 		self.make_times()
 		print(self.times)
 		if self.p != None and self.p != []:
-			self.pub.publish(cf_num, self.cf_ID, self.p)
+			#self.pub.publish(cf_num, self.cf_ID, self.p)
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
 			print('published')
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
-			self.pub.publish(cf_num, self.cf_ID, self.p)
+			#self.pub.publish(cf_num, self.cf_ID, self.p)
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
 
 
@@ -182,7 +187,7 @@ class system:
 
 		'''switch # to change between timing methods'''
 		#time1 = current_time + 1
-		time1 = time.time() + 1
+		time1 = time.time() + 2
 
 
 
@@ -215,30 +220,35 @@ class full_system:
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.system_list = []
-		self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
+		#self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
 		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
 		self.runner()
 
 	def runner(self):
 		for ID in range(cf_num):
-			sys = system(self.adj_array, self.info_dict, ID, self.pub, self.pubTime)
+			sys = system(self.adj_array, self.info_dict, ID, self.pubTime)
 			self.system_list.append(sys)
 		#rospy.init_node('highlighter', anonymous = False)
-		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
+		#rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
 		for sys in self.system_list:
 			sys.publish_new_path()
-		thread.start_new_thread ( self.double_check , ())
-		rospy.spin()
+		#thread.start_new_thread ( self.double_check , ())
+		#rospy.spin()
+		self.double_check()
 
 	#publishes constant old paths
 	def double_check(self):
 		while True:
 			for sys in self.system_list:
-				sys.publish_old_path()
+				if sys.is_finished() and continuous:
+					sys.publish_new_path()
+				else:
+					sys.publish_old_path()
 			time.sleep(.1)
 
 	#response to simulator, updates position accordingly
 	#time update hard coded in, will be a problem
+	'''
 	def pos_update(self, data):
 		global current_time
 		current_time += .01
@@ -251,6 +261,7 @@ class full_system:
 			y = y_list[id]
 			z = z_list[id]
 			sys.update_cf_pos((x, y, z))
+	'''
 
 def map_maker_client():
 	rospy.wait_for_service('send_complex_map')

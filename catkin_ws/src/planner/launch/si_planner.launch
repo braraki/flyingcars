@@ -3,10 +3,12 @@
 
   <arg name="cf_num" default="1" />
   <arg name="z_coefficient" default="4"/>
+  <arg name="continuous" default="True" />
 
-  <node name="si_planner" pkg="planner" type="si_planner.py">
+  <node name="si_planner" pkg="planner" type="si_planner.py" output="screen">
   	<param name="cf_num" value="$(arg cf_num)"/>
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
+  	<param name="continuous" value="$(arg continuous)" />
   </node>
 
   <node name="easy_sg" pkg="planner" type="easy_sg.py"/>
