@@ -15,6 +15,7 @@
     <param name="map_num_cloud_layers" value="1"/>
     <param name="map_cloud_layer_dist" value="2"/>
     <param name="map_cloud_density" value="2"/>
+    <param name="helipad_height" value="0"/>
     <rosparam command="load" file="$(find map_maker)/config/$(arg map).yaml" />
   </node>
   <node name="complex_map" pkg="map_maker" type="complex_map.py">

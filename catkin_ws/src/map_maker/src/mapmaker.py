@@ -25,6 +25,7 @@ map_cloud_height = float(rospy.get_param('/mapmaker/map_cloud_height'))
 map_num_cloud_layers = int(rospy.get_param('/mapmaker/map_num_cloud_layers'))
 map_cloud_layer_dist = float(rospy.get_param('/mapmaker/map_cloud_layer_dist'))
 map_cloud_density = int(rospy.get_param('/mapmaker/map_cloud_density'))
+helipad_height = float(rospy.get_param('/mapmaker/helipad_height'))
 
 
 #imported map parameters
@@ -870,7 +871,7 @@ for co in map_pre_dict.keys():
 	flyable = True
 	elevation = 0
 	if 'C' in exitnodelist:
-		elevation = .25
+		elevation = helipad_height
 	if co in non_fly_list:
 		flyable = False
 	t = tile(map_tile_size, map_tile_size, exitnodelist, flyable, map_road_ratio, co[0]*map_tile_size, co[1]*map_tile_size, elevation)

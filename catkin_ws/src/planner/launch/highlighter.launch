@@ -9,6 +9,8 @@
   	<param name="cf_num" value="$(arg cf_num)"/>
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
   	<param name="continuous" value="$(arg continuous)" />
+  	<param name="land_vel" value=".25" />
+  	<param name="air_vel" value=".5" />
   </node>
 
 </launch>

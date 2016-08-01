@@ -28,8 +28,8 @@ used_park_IDs = []
 cf_num = int(rospy.get_param('/si_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
 continuous = bool(rospy.get_param('/si_planner/continuous'))
-land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
+land_vel = float(rospy.get_param('/si_planner/land_vel'))
+air_vel = float(rospy.get_param('/si_planner/air_vel'))
 
 si_dict = {}
 

@@ -25,8 +25,8 @@ import thread
 cf_num = int(rospy.get_param('/highlighter/cf_num'))
 z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
 continuous = bool(rospy.get_param('/highlighter/continuous'))
-land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
+land_vel = float(rospy.get_param('/highlighter/land_vel'))
+air_vel = float(rospy.get_param('/highlighter/air_vel'))
 
 class Category(Enum):
 	mark = 0
