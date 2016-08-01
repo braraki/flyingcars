@@ -20,6 +20,10 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+
+#from map_maker.src import gen_adj_array_info_dict
+
+
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -130,7 +134,18 @@ def map_maker_client():
 		#print("service call failed")
 
 
+
 if __name__ == "__main__":
 	rospy.init_node('easy_sg')
 	#print('test')
 	map_maker_client()
+	'''
+	info_dict = gen_adj_array_info_dict.map_maker_client('send_map')[0]
+	Category = gen_adj_array_info_dict.Category
+	for ID in info_dict:
+		c = info_dict[ID][1]
+		if c == Category.park:
+			park_dict[ID] = (x, y, z)
+	info_sender()
+	'''
+

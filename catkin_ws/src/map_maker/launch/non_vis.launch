@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="cf_num" default="7"/>
+  <arg name="map" default="duckytown_map" />
+
+  <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
+    <param name="map_road_ratio" value=".5"/>
+    <param name="map_tile_size" value=".5"/>
+    <param name="map_interface_height" value=".75"/>
+    <param name="map_cloud_height" value="1.25"/>
+    <param name="map_num_cloud_layers" value="1"/>
+    <param name="map_cloud_layer_dist" value="2"/>
+    <param name="map_cloud_density" value="2"/>
+    <rosparam command="load" file="$(find map_maker)/config/$(arg map).yaml" />
+  </node>
+  <node name="complex_map" pkg="map_maker" type="complex_map.py">
+    <param name="ideal_way_point_d" value=".15"/>
+  </node>
+
+</launch>

@@ -27,6 +27,7 @@ used_park_IDs = []
 
 cf_num = int(rospy.get_param('/si_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
+continuous = bool(rospy.get_param('/si_planner/continuous'))
 land_vel = .25#0.025 #m/s
 air_vel = .5#0.05
 
@@ -131,18 +132,17 @@ def find_interval(state, time):
 	my_interval = None
 	for i in my_intervals:
 		if i[0] <= time <= i[1]:
-			print(i)
+			#print(i)
 			return(i)
 	print('interval not found')
 	print('AAAAAAAAAAAAAAAAAAA')
 
 #single crazyflie
 class system:
-	def __init__(self, adj_array, info_dict, cf_ID, pub, pubTime):
+	def __init__(self, adj_array, info_dict, cf_ID, pubTime):
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.cf_ID = cf_ID
-		self.pub = pub
 		self.pubTime = pubTime
 		self.end_pos = None
 		self.cf_pos = None
@@ -322,14 +322,14 @@ class system:
 			return(time_heur)
 
 		return(a_star(successors, ID1, goal_test, heur))
-
+	'''
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
 		self.cf_pos = pos
 		if self.is_finished():
 			self.publish_new_path()
-
-
+	'''
+	'''
 	def is_finished(self):
 		if self.cf_pos == self.end_pos:
 			return(True)
@@ -340,6 +340,12 @@ class system:
 			#print(dist)
 			return(dist < .02)
 		return(False)
+	'''
+	def is_finished(self):
+		t = time.time()
+		last_time = self.times[len(self.times) - 1]
+		return(t > last_time)
+
 
 	def publish_new_path(self):
 		#print('publish new path')
@@ -350,24 +356,18 @@ class system:
 		else:
 			self.p = []
 			self.times = []
-			prev_state = None
 			for state in info:
 				self.p.append(state[0])
 				self.times.append(state[1])
-				if state == prev_state:
-					print('waited')
-				prev_state = state[0]
 			self.update_si_dict()
 			#print(self.p)
 			#print(self.times)
 			if self.p != None and self.p != []:
-				self.pub.publish(cf_num, self.cf_ID, self.p)
 				self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
 				#print('published')
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
-			self.pub.publish(cf_num, self.cf_ID, self.p)
 			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
 
 	def update_si_dict(self):
@@ -431,7 +431,6 @@ class full_system:
 		self.adj_array = adj_array
 		self.info_dict = info_dict
 		self.system_list = []
-		self.pub = rospy.Publisher('~path_topic', HiPath, queue_size = 10)
 		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
 		#self.analyse_adj_array()
 		self.runner()
@@ -449,22 +448,29 @@ class full_system:
 
 	def runner(self):
 		for ID in range(cf_num):
-			sys = system(self.adj_array, self.info_dict, ID, self.pub, self.pubTime)
+			sys = system(self.adj_array, self.info_dict, ID, self.pubTime)
 			self.system_list.append(sys)
 		#rospy.init_node('highlighter', anonymous = False)
-		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
+		#rospy.Subscriber('~SimPos_topic', SimPos, self.pos_update)
+		#thread.start_new_thread ( self.pos_update, ())
 		for sys in self.system_list:
 			sys.publish_new_path()
-		thread.start_new_thread ( self.double_check , ())
-		rospy.spin()
+		#thread.start_new_thread ( self.double_check , ())
+		#rospy.spin()
+		self.double_check()
 
 	#publishes constant old paths
+	#publishes new path when it is necessary
+	#is really doing what runner is supposed to do
 	def double_check(self):
 		while True:
 			for sys in self.system_list:
-				sys.publish_old_path()
+				if sys.is_finished() and continuous:
+					sys.publish_new_path()
+				else:
+					sys.publish_old_path()
 			time.sleep(.1)
-
+	'''
 	#response to simulator, updates position accordingly
 	#time update hard coded in, will be a problem
 	def pos_update(self, data):
@@ -479,6 +485,7 @@ class full_system:
 			y = y_list[index]
 			z = z_list[index]
 			sys.update_cf_pos((x, y, z))
+	'''
 
 def map_maker_client():
 	global si_dict

@@ -18,11 +18,14 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+import gen_adj_array_info_dict
+
 
 #parameter
 
 ideal_way_point_d = float(rospy.get_param('/complex_map/ideal_way_point_d'))
 
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -32,6 +35,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
 
 #a_list represents the distance at which the number of waypoint nodes should change.
 #The values represent the max distance for the waypoint of that entries index
@@ -140,11 +144,10 @@ class sender:
 		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5)
 
 	def info_sender(self):
-		rospy.init_node('complex_map_maker_server')
 		s = rospy.Service('send_complex_map', MapTalk ,self.response)
 		print('ready to send info back')
 		rospy.spin()
-
+'''
 def map_maker_client():
 	rospy.wait_for_service('send_map')
 	try:
@@ -173,8 +176,13 @@ def map_maker_client():
 		s.info_sender()
 	except rospy.ServiceException, e:
 		print("service call failed")
-
+'''
 
 if __name__ == "__main__":
 	print('test')
-	map_maker_client()
+	rospy.init_node('complex_map_maker_server')
+	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+	Category = gen_adj_array_info_dict.Category
+	analysis = get_new_info(info_dict, A)
+	s = sender(analysis[0], analysis[1])
+	s.info_sender()

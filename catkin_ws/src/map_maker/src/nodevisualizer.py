@@ -8,7 +8,6 @@ from map_maker.msg import *
 from interactive_markers.interactive_marker_server import *
 from visualization_msgs.msg import *
 from geometry_msgs.msg import Point
-#from crazyflie_description import crazyflie2
 
 import math
 import matplotlib.pyplot as plt
@@ -22,6 +21,8 @@ import numpy as np
 import tf
 
 import thread
+
+import gen_adj_array_info_dict
 
 #arguments
 #thickness of the tile (generally)
@@ -49,6 +50,7 @@ def processFeedback(feedback):
 	p = feedback.pose.position
 	print feedback.marker_name + " is now at " + str(p.x) + ", " + str(p.y) + ", " + str(p.z)
 
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -58,6 +60,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
 
 class visual_node:
 	def __init__(self, ID, x, y, z, category = None, successors = [], precursors = []):
@@ -165,10 +168,9 @@ class visual_edge:
 		return(int_marker)
 
 class node_scape:
-	def __init__(self, info_dict, adjacency_matrix, num_IDs):
+	def __init__(self, info_dict, adjacency_matrix):
 		self.info_dict = info_dict
 		self.adjacency_matrix = adjacency_matrix
-		self.num_IDs = num_IDs
 		self.node_list = []
 		self.node_ID_dict = {}
 		self.edge_list = []
@@ -238,7 +240,7 @@ class building_scape:
 		self.crazyflie_list = []
 		self.cf_num = None
 		self.server = InteractiveMarkerServer("simple_marker")
-		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 
 	#does all of the tile work (roadratio, flyable, etc.)
@@ -328,7 +330,7 @@ class building_scape:
 				self.server.applyChanges()
 
 	def fluid_construct(self):
-		rospy.Subscriber('~path_topic', HiPath, self.respond)
+		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 		#self.server = InteractiveMarkerServer("simple_marker")
 		#rospy.spin()
@@ -336,7 +338,7 @@ class building_scape:
 	def construct(self):
 		#self.node_scape.construct()
 		
-		#rospy.Subscriber('~path_topic', HiPath, self.respond)
+		#rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		#rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
 		
 		#thread.start_new_thread ( self.fluid_construct , ())
@@ -345,7 +347,7 @@ class building_scape:
 		int_marker = InteractiveMarker()
 		int_marker.header.frame_id = "base_link"
 		int_marker.name = "my_marker"
-		'''
+
 		for n in self.node_scape.node_list:
 			if n.category != Category.mark:
 				if air_node_display:
@@ -353,7 +355,7 @@ class building_scape:
 				elif n.category != Category.cloud and n.category != Category.interface:
 					int_marker = n.construct(int_marker)
 			# 'commit' changes and send to all clients
-		'''
+
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
@@ -361,13 +363,12 @@ class building_scape:
 				if node1.category != Category.interface and node2.category != Category.interface:
 					if node1.category != Category.mark and node2.category != Category.mark:
 						int_marker = e.construct(int_marker)
-		
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)
 		for t in tiles:
 			int_marker = t.construct(int_marker)
 		self.construct_2(int_marker)
-
+		
 	def construct_2(self, int_marker):
 		self.server.insert(int_marker, processFeedback)
 		self.server.applyChanges()
@@ -435,6 +436,7 @@ class crazyflie:
 
 		self.server.applyChanges()
 
+	#updates path and removes waypoints
 	def update_path(self, path):
 		if path != self.path:
 			self.path = []
@@ -769,14 +771,13 @@ class house:
 
 
 
-info_dict = {}
-
+'''
 def map_maker_client():
 	rospy.wait_for_service('send_map')
 	rospy.wait_for_service('send_complex_map')
 	try:
 		print('calling')
-		global info_dict
+		info_dict = {}
 		func = rospy.ServiceProxy('send_map', MapTalk)
 		resp = func()
 		func_complex = rospy.ServiceProxy('send_complex_map', MapTalk)
@@ -806,16 +807,26 @@ def map_maker_client():
 					z = (resp_complex.z_list[ID])
 					info_dict[ID] = ((x, y, z), c)
 		#print(info_dict)
-		ns = node_scape(info_dict, A, resp_complex.num_IDs)
+		ns = node_scape(info_dict, A)
 		#ns.construct()
 		bs = building_scape(ns)
 		bs.build_tiles()
 		bs.construct()
 	except rospy.ServiceException, e:
 		print("service call failed")
-
+'''
 
 if __name__ == "__main__":
 	print('test')
 	rospy.init_node("simple_marker")
-	map_maker_client()
+	if waypoint_node_display:
+		info_dict = gen_adj_array_info_dict.map_maker_client('send_complex_map')[0]
+		A = gen_adj_array_info_dict.map_maker_client('send_map')[1]
+	else:
+		(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+	Category = gen_adj_array_info_dict.Category
+	ns = node_scape(info_dict, A)
+	#ns.construct()
+	bs = building_scape(ns)
+	bs.build_tiles()
+	bs.construct()

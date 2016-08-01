@@ -19,12 +19,16 @@ from enum import Enum
 import numpy as np
 
 import thread
+
+import gen_adj_array_info_dict
+
+
 #arguments
 
 delay = float(rospy.get_param('/simulator/delay'))
 
 current_time = 0.0
-
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -34,7 +38,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
-
+'''
 #returns list of points from path
 def analyse(p, times, info_dict):
 	'''
@@ -221,7 +225,7 @@ class full_system:
 			#print('thread initialized')
 
 
-
+'''
 
 def map_maker_client():
 	rospy.wait_for_service('send_complex_map')
@@ -249,9 +253,13 @@ def map_maker_client():
 		fs.runner()
 	except rospy.ServiceException, e:
 		print("service call failed: "+str(e))
-
+'''
 
 if __name__ == "__main__":
 	#print('test')
 	rospy.init_node("sim_node")	
-	map_maker_client()
+	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_complex_map')
+	Category = gen_adj_array_info_dict.Category
+	fs = full_system(info_dict, A)
+	fs.runner()
+
