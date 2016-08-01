@@ -5,6 +5,7 @@ __pycache__/
 
 *.csv
 duckytown.rviz
+duckietown.rviz
 
 # C extensions
 *.so
@@ -14,6 +15,8 @@ duckytown.rviz
 env/
 build/
 devel/
+catkin_ws/devel/
+catkin_ws/build
 develop-eggs/
 dist/
 downloads/
