@@ -345,7 +345,7 @@ class building_scape:
 		int_marker = InteractiveMarker()
 		int_marker.header.frame_id = "base_link"
 		int_marker.name = "my_marker"
-		'''
+
 		for n in self.node_scape.node_list:
 			if n.category != Category.mark:
 				if air_node_display:
@@ -353,7 +353,7 @@ class building_scape:
 				elif n.category != Category.cloud and n.category != Category.interface:
 					int_marker = n.construct(int_marker)
 			# 'commit' changes and send to all clients
-		'''
+
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
@@ -361,13 +361,12 @@ class building_scape:
 				if node1.category != Category.interface and node2.category != Category.interface:
 					if node1.category != Category.mark and node2.category != Category.mark:
 						int_marker = e.construct(int_marker)
-		
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)
 		for t in tiles:
 			int_marker = t.construct(int_marker)
 		self.construct_2(int_marker)
-
+		
 	def construct_2(self, int_marker):
 		self.server.insert(int_marker, processFeedback)
 		self.server.applyChanges()

@@ -4,7 +4,7 @@
   <arg name="cf_num" default="1" />
   <arg name="z_coefficient" default="4"/>
 
-  <node name="si_planner" pkg="planner" type="si_planner.py" output="screen">
+  <node name="si_planner" pkg="planner" type="si_planner.py">
   	<param name="cf_num" value="$(arg cf_num)"/>
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
   </node>
