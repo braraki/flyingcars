@@ -426,13 +426,15 @@ class landscape:
 		self.num_long = num_long
 		self.num_wide = num_wide
 		self.tile_dict = tile_dict
+		x_shift = (self.num_long - 1)*.5
+		y_shift = (self.num_wide - 1)*.5
 		for x in range(num_long):
 			for y in range(num_wide):
 				if (x,y) not in tile_dict:
 					self.tile_dict[(x, y)] = None
 				else:
 					t = tile_dict[(x, y)]
-					t.set_co(x*t.length, y*t.width)
+					t.set_co((x - x_shift)*t.length, (y - y_shift)*t.width)
 					t.create_nodes()
 					t.connect_own()
 					t.add_and_connect_parking()
