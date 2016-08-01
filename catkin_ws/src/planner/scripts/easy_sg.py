@@ -21,9 +21,9 @@ from enum import Enum
 import numpy as np
 
 
-#from map_maker.src import gen_adj_array_info_dict
+from map_maker import gen_adj_array_info_dict
 
-
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -33,6 +33,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
 
 park_dict = {}
 
@@ -104,7 +105,7 @@ def info_sender():
 	s = rospy.Service('send_situation', situation, response)
 	#print('ready to send info back')
 	rospy.spin()
-
+'''
 def map_maker_client():
 	global park_dict
 	rospy.wait_for_service('send_map')
@@ -132,20 +133,18 @@ def map_maker_client():
 	except rospy.ServiceException, e:
 		t=1
 		#print("service call failed")
-
+'''
 
 
 if __name__ == "__main__":
 	rospy.init_node('easy_sg')
 	#print('test')
-	map_maker_client()
-	'''
 	info_dict = gen_adj_array_info_dict.map_maker_client('send_map')[0]
 	Category = gen_adj_array_info_dict.Category
 	for ID in info_dict:
 		c = info_dict[ID][1]
 		if c == Category.park:
-			park_dict[ID] = (x, y, z)
+			park_dict[ID] = info_dict[ID][0]
 	info_sender()
-	'''
+
 
