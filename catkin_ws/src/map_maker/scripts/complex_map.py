@@ -18,7 +18,7 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
-import gen_adj_array_info_dict
+from map_maker import gen_adj_array_info_dict
 
 
 #parameter

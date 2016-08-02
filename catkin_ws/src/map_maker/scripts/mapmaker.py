@@ -25,6 +25,7 @@ map_cloud_height = float(rospy.get_param('/mapmaker/map_cloud_height'))
 map_num_cloud_layers = int(rospy.get_param('/mapmaker/map_num_cloud_layers'))
 map_cloud_layer_dist = float(rospy.get_param('/mapmaker/map_cloud_layer_dist'))
 map_cloud_density = int(rospy.get_param('/mapmaker/map_cloud_density'))
+helipad_height = float(rospy.get_param('/mapmaker/helipad_height'))
 
 
 #imported map parameters
@@ -425,13 +426,15 @@ class landscape:
 		self.num_long = num_long
 		self.num_wide = num_wide
 		self.tile_dict = tile_dict
+		x_shift = (self.num_long - 1)*.5
+		y_shift = (self.num_wide - 1)*.5
 		for x in range(num_long):
 			for y in range(num_wide):
 				if (x,y) not in tile_dict:
 					self.tile_dict[(x, y)] = None
 				else:
 					t = tile_dict[(x, y)]
-					t.set_co(x*t.length, y*t.width)
+					t.set_co((x - x_shift)*t.length, (y - y_shift)*t.width)
 					t.create_nodes()
 					t.connect_own()
 					t.add_and_connect_parking()
@@ -870,7 +873,7 @@ for co in map_pre_dict.keys():
 	flyable = True
 	elevation = 0
 	if 'C' in exitnodelist:
-		elevation = .25
+		elevation = helipad_height
 	if co in non_fly_list:
 		flyable = False
 	t = tile(map_tile_size, map_tile_size, exitnodelist, flyable, map_road_ratio, co[0]*map_tile_size, co[1]*map_tile_size, elevation)

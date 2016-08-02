@@ -21,6 +21,7 @@ import numpy as np
 
 import thread
 
+from map_maker import gen_adj_array_info_dict
 #arguments
 
 used_park_IDs = []
@@ -28,13 +29,16 @@ used_park_IDs = []
 cf_num = int(rospy.get_param('/si_planner/cf_num'))
 z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
 continuous = bool(rospy.get_param('/si_planner/continuous'))
-land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
+land_vel = float(rospy.get_param('/si_planner/land_vel'))
+air_vel = float(rospy.get_param('/si_planner/air_vel'))
+air_buffer_dist = float(rospy.get_param('/si_planner/air_buffer_dist'))
 
 si_dict = {}
 
-count = 0
+air_buffer_dict = {}
 
+count = 0
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -44,6 +48,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
 ##search
 
 ##this will search through the dictionary returned from a landscape in the 
@@ -392,39 +397,41 @@ class system:
 				last_ID = self.p[index - 1]
 			ID = self.p[index]
 			t = self.times[index]
+			buffer_IDs = air_buffer_dict[ID]
 			#print(t)
-			intervals = si_dict[ID]
-			new_intervals = []
-			#print(intervals)
-			for interval in intervals:
-				if interval[1] > purge_time:
-					if interval[0] < purge_time:
-						start_time = purge_time
-					else:
-						start_time = interval[0]
-					if start_time < t < interval[1]:
-						low_split = t - space_time
-						high_split = t + space_time
-						if last:
-							#print('last')
-							high_split = t #+ (planning_time - .1 - space_time*2)
+			for ID in buffer_IDs:
+				intervals = si_dict[ID]
+				new_intervals = []
+				#print(intervals)
+				for interval in intervals:
+					if interval[1] > purge_time:
+						if interval[0] < purge_time:
+							start_time = purge_time
 						else:
-							high_split = max(next_t, t + space_time)
-						if first:
-							low_split = low_split
+							start_time = interval[0]
+						if start_time < t < interval[1]:
+							low_split = t - space_time
+							high_split = t + space_time
+							if last:
+								#print('last')
+								high_split = t #+ (planning_time - .1 - space_time*2)
+							else:
+								high_split = max(next_t, t + space_time)
+							if first:
+								low_split = low_split
+							else:
+								low_split = min(t - space_time, last_t)
+							if low_split > start_time:
+								new_intervals.append((start_time, low_split))
+							if high_split < interval[1]:
+								new_intervals.append((high_split, interval[1]))
 						else:
-							low_split = min(t - space_time, last_t)
-						if low_split > start_time:
-							new_intervals.append((start_time, low_split))
-						if high_split < interval[1]:
-							new_intervals.append((high_split, interval[1]))
-					else:
-						new_intervals.append((start_time, interval[1]))
-			si_dict[ID] = new_intervals
-			#print(t)
-			#print(new_intervals)
-			#print(" ")
-		#print(si_dict)
+							new_intervals.append((start_time, interval[1]))
+				si_dict[ID] = new_intervals
+				#print(t)
+				#print(new_intervals)
+				#print(" ")
+			#print(si_dict)
 
 class full_system:
 	def __init__(self, adj_array, info_dict):
@@ -486,7 +493,7 @@ class full_system:
 			z = z_list[index]
 			sys.update_cf_pos((x, y, z))
 	'''
-
+'''
 def map_maker_client():
 	global si_dict
 	rospy.wait_for_service('send_complex_map')
@@ -516,9 +523,37 @@ def map_maker_client():
 		fs = full_system(A, info_dict)
 	except rospy.ServiceException, e:
 		print("service call failed")
+'''
+def fill_air_buffer_dict(info_dict):
+	global air_buffer_dict
+	for ID in info_dict:
+		c = info_dict[ID][1]
+		if c != Category.cloud and c != Category.interface:
+			air_buffer_dict[ID] = [ID]
+		else:
+			(x1, y1, z1) = info_dict[ID][0]
+			buffered = [ID]
+			for ID2 in info_dict:
+				if ID2 != ID:
+					c2 = info_dict[ID2][1]
+					if c2 == Category.cloud or c2 == Category.interface:
+						(x2, y2, z2) = info_dict[ID2][0]
+						dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
+						if dist <= air_buffer_dist:
+							buffered.append(ID2)
+			air_buffer_dict[ID] = buffered
+	print(air_buffer_dict)
+
+
 
 
 if __name__ == "__main__":
 	print('test')
 	rospy.init_node('highlighter', anonymous = True)
-	map_maker_client()
+	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_complex_map')
+	Category = gen_adj_array_info_dict.Category
+	fill_air_buffer_dict(info_dict)
+	starting_time = time.time()
+	for ID in info_dict:
+		si_dict[ID] = [(starting_time, starting_time*1000)]
+	fs = full_system(A, info_dict)

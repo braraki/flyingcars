@@ -20,7 +20,7 @@ import numpy as np
 
 import thread
 
-import gen_adj_array_info_dict
+from map_maker import gen_adj_array_info_dict
 
 
 #arguments

@@ -20,14 +20,15 @@ import numpy as np
 
 import thread
 
+from map_maker import gen_adj_array_info_dict
 #arguments
 
 cf_num = int(rospy.get_param('/highlighter/cf_num'))
 z_coefficient = float(rospy.get_param('/highlighter/z_coefficient'))
 continuous = bool(rospy.get_param('/highlighter/continuous'))
-land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
-
+land_vel = float(rospy.get_param('/highlighter/land_vel'))
+air_vel = float(rospy.get_param('/highlighter/air_vel'))
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -37,6 +38,7 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
 ##search
 
 ##this will search through the dictionary returned from a landscape in the 
@@ -262,7 +264,7 @@ class full_system:
 			z = z_list[id]
 			sys.update_cf_pos((x, y, z))
 	'''
-
+'''
 def map_maker_client():
 	rospy.wait_for_service('send_complex_map')
 	try:
@@ -291,9 +293,12 @@ def map_maker_client():
 		fs.runner()
 	except rospy.ServiceException, e:
 		print("service call failed")
-
+'''
 
 if __name__ == "__main__":
 	print('test')
 	rospy.init_node('highlighter', anonymous = True)
-	map_maker_client()
+	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_complex_map')
+	Category = gen_adj_array_info_dict.Category
+	fs = full_system(A, info_dict)
+	fs.runner()
