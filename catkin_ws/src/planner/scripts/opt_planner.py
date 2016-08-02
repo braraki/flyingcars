@@ -20,6 +20,7 @@ from enum import Enum
 import numpy as np
 
 import thread
+from map_maker import gen_adj_array_info_dict
 
 from gurobipy import *
 
@@ -27,12 +28,12 @@ from gurobipy import *
 
 used_park_IDs = []
 
-cf_num = int(rospy.get_param('/si_planner/cf_num'))
-z_coefficient = float(rospy.get_param('/si_planner/z_coefficient'))
-land_vel = .25#0.025 #m/s
-air_vel = .5#0.05
-
-si_dict = {}
+cf_num = int(rospy.get_param('/opt_planner/cf_num'))
+z_coefficient = float(rospy.get_param('/opt_planner/z_coefficient'))
+continuous = bool(rospy.get_param('/opt_planner/continuous'))
+land_vel = float(rospy.get_param('/opt_planner/land_vel'))
+air_vel = float(rospy.get_param('/opt_planner/air_vel'))
+air_buffer_dist = float(rospy.get_param('/opt_planner/air_buffer_dist'))
 
 count = 0
 
@@ -50,6 +51,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 	og = old_graph
 	oa = old_adj
 	th = time_horizon
+	num_IDs = len(old_graph)
 
 	# for i in range(num_IDs):
 	# 	for j in range(time_horizon+1):
@@ -73,6 +75,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 	# at the last time step
 	for start, end in startend:
 		arcs.append((end+th*num_IDs,start))
+		print end+th*num_IDs, start
 
 
 	for ID in range(num_IDs):
@@ -101,11 +104,16 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 					for cf in range(cf_num):
 						cost_of_travel = 0.2
 						costs[(cf,current_state, next_neighbor)] = cost_of_travel
+	
 
-def make_model(arcs, costs, startend):
+	print num_IDs
+	print len(arcs)
+	#print arcs
+	return na, costs, arcs
+
+def make_model(arcs, costs, startend, num_IDs):
 
 	m = Model('netflow')
-
 
 	# add a flow variable for each robot-arc pair
 	flow = {}
@@ -118,25 +126,29 @@ def make_model(arcs, costs, startend):
 			# there obj = 1.0 when it is a loopback arc
 			# and the cf num corresponds to the arc num
 			# otherwise the objective is 0
-			loopback = k < len(startend) and cf == k
-			flow[cf,i,j] = m.addVar(ub=1.0, obj= 1.0 if loopback else 0.0, vtype=GRB.BINARY,
-									name='flow_%s_%s_%s' % (cf, i, j))
+			#loopback = k < len(startend) and cf == k
+			#flow[cf,i,j] = m.addVar(ub=1.0, obj= 1.0 if loopback else 0.0, vtype=GRB.BINARY,
+			#						name='flow_%s_%s_%s' % (cf, i, j))
+
+			flow[cf,i,j] = m.addVar(ub=1.0, obj= 0.0, vtype=GRB.BINARY,
+				name='flow_%s_%s_%s' % (cf, i, j))
 
 	m.update()
 
 	# add capacity constraint on each arc
 	# one robot max per arc
 	for i, j in arcs:
-		m.addConstr(quicksum(flow[cf,i,j] for cf in range(cf_num)) <= 1,
+		m.addConstr(quicksum(flow[cf,i,j] for cf in range(cf_num)) <= 1.0,
 			name='cap_%s_%s' % (i,j))
 
 	# add capacity constraint on each loopback arc
 	# aka, only robot i can pass through loopback arc i
 	# CRAZYFLIE NUM MUST CORRESPOND TO LOOPBACK ARC NUM
-	for i,a in enumerate(startend):
-		s, e = a #unpack the tuple
+	for i in range(len(startend)):
+		s, e = arcs[i]
 		for cf in range(cf_num):
 			if cf != i:
+				print cf, s, e
 				m.addConstr(flow[cf,s,e] == 0,
 					'loopback_cap_%s_%s' % (s,e))
 
@@ -145,7 +157,7 @@ def make_model(arcs, costs, startend):
 		for j in range(num_IDs):
 			m.addConstr(quicksum(flow[cf,i,j] for i,j in arcs.select('*',j)) ==
 				quicksum(flow[cf,j,k] for j,k in arcs.select(j,'*')),
-					'node_%s_%s' % (h,j))
+					'node_%s_%s' % (cf,j))
 
 
 	# add head-on collision constraint
@@ -154,7 +166,7 @@ def make_model(arcs, costs, startend):
 		for u_t0, v_t1 in out:
 			v_t0 = v_t1 - num_IDs
 			u_t1 = u_t0 + num_IDs
-			if valid(v_t0) and valid(u_t1):
+			if valid(v_t0, num_IDs) and valid(u_t1, num_IDs):
 				v_out = arcs.select(v_t0,'*')
 				out_nodes = [y for x, y in v_out]
 				if u_t1 in out_nodes:
@@ -172,35 +184,113 @@ def make_model(arcs, costs, startend):
 		m.addConstr(quicksum(flow[cf,i,o] for cf,i,o in flow_list) <= 1)
 
 
-def opt_planner():
-	rospy.wait_for_service('send_complex_map')
-	try:
-		print('calling')
-		func = rospy.ServiceProxy('send_complex_map', MapTalk)
-		resp = func()
-		print('recieved')
-		category_list = resp.category_list
-		x_list = resp.x_list
-		y_list = resp.y_list
-		z_list = resp.z_list
-		num_IDs = resp.num_IDs
-		adjacency_array = resp.adjacency_array
-		A = np.array(adjacency_array)
-		A.shape = (num_IDs, num_IDs)
-		adj_array = A
-		info_dict = {}
-		for ID in range(num_IDs):
-			x = (x_list[ID])
-			y = (y_list[ID])
-			z = (z_list[ID])
-			c = static_category_dict[category_list[ID]]
-			#print(category_list[ID])
-			info_dict[ID] = ((x, y, z), c)
-	except rospy.ServiceException, e:
-		print("service call failed")
 
+	objExpr = LinExpr()
+	for i in range(len(startend)):
+		s,e = arcs[i]
+		cf_ID = i
+		objExpr.addTerms(1.0,flow[cf_ID,s,e])
+
+	m.setObjective(objExpr,GRB.MAXIMIZE)
+
+
+	return m, flow
+
+def valid(node, num_IDs):
+	return node >= 0 and node < num_IDs
+
+class full_system:
+	def __init__(self, adj_array, info_dict):
+		self.adj_array = adj_array
+		self.info_dict = info_dict
+		self.num_IDs = len(info_dict)
+		self.system_list = []
+		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
+		self.runner()
+
+	def runner(self):
+		time_horizon = 5
+		startend = tuplelist()
+		for cf_ID in range(cf_num):
+			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
+			#self.system_list.append(sys)
+			(ID1, ID2) = self.request_situation(cf_ID)
+			startend.append((ID1,ID2))
+
+		na, costs, arcs = convert_graph(info_dict,A,startend,time_horizon)
+
+		m, flow = make_model(arcs, costs, startend, self.num_IDs*(time_horizon+1))
+
+		m.optimize()
+
+		# Print solution
+		if m.status == GRB.Status.OPTIMAL:
+		    solution = m.getAttr('x', flow)
+		    for h in range(cf_num):
+		        print('\nOptimal flows for %s:' % h)
+		        for i,j in arcs:
+		            if solution[h,i,j] > 0:
+		                print('%s -> %s: %g' % (i, j, solution[h,i,j]))
+
+			paths,times = self.extract_paths(solution, arcs)
+			for cf in range(cf_num):
+				print cf, paths[cf]
+				print times[cf]
+				self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+
+	def extract_paths(self,solution,arcs):
+		paths = {}
+		times = {}
+		for cf in range(cf_num):
+			path = tuplelist()
+			for i,j in arcs:
+				if solution[cf,i,j] > 0:
+					path.append((i,j))
+			first_node = path.pop(0)[1]
+			print path
+			first_timestep = 0
+			ordered_path = self.order_path(path,first_node)
+			print ordered_path
+			time_adjusted_path = self.time_adjust(ordered_path)
+			print time_adjusted_path
+			paths[cf] = time_adjusted_path
+			current_time = time.time()
+			times[cf] = [1*x for x in range(0,len(paths[cf]))]
+		return paths,times
+
+	def order_path(self,path,node):
+		if path:
+			edge = path.select(node,'*')[0]
+			next_node = edge[1]
+			path.remove(edge)
+			return [node] + self.order_path(path,next_node)
+		else:
+			return [node]
+
+	def time_adjust(self,path):
+		new_path = []
+		for timestep,node in enumerate(path):
+			new_node = node - timestep*self.num_IDs
+			new_path.append(new_node)
+		return new_path
+
+	def request_situation(self,cf_ID):
+			global count
+			print(count)
+			count += 1
+			#print('situation asking')
+			rospy.wait_for_service('send_situation')
+			try:
+				#print('calling')
+				func = rospy.ServiceProxy('send_situation', situation)
+				resp = func(cf_ID)
+				return((resp.start_ID, resp.end_ID))
+			except rospy.ServiceException, e:
+				t = 1
+				#print("service call failed")
 
 if __name__ == "__main__":
-	print('test')
 	rospy.init_node('opt_planner', anonymous = True)
-	opt_planner()
+	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_complex_map')
+	Category = gen_adj_array_info_dict.Category
+	fs = full_system(info_dict, A)
