@@ -5,6 +5,9 @@
   <arg name="z_coefficient" default="4"/>
   <arg name="continuous" default="True" />
 
+  <remap from="easy_sg/StartingID_topic" to="setup/StartingID_topic" />
+  <remap from="si_planner/Starter" to="setup/Starter" />
+
   <node name="si_planner" pkg="planner" type="si_planner.py" output="screen">
   	<param name="cf_num" value="$(arg cf_num)"/>
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
@@ -15,6 +18,11 @@
   </node>
 
   <node name="easy_sg" pkg="planner" type="easy_sg.py"/>
+
+  <node name="setup" pkg="planner" type="setup.py" output="screen">
+    <param name="cf_num" value="$(arg cf_num)" />
+    <param name="centered" value="True" />
+  </node>
 
 </launch>
 

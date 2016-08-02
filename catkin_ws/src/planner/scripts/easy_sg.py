@@ -5,6 +5,7 @@ from std_msgs.msg import String
 from map_maker.srv import *
 from map_maker.msg import *
 from planner.srv import *
+from planner.msg import *
 
 from interactive_markers.interactive_marker_server import *
 from visualization_msgs.msg import *
@@ -134,6 +135,11 @@ def map_maker_client():
 		t=1
 		#print("service call failed")
 '''
+def setup_situation(data):
+	global in_use
+	starting_IDs = data.starting_IDs
+	for index in range(len(starting_IDs)):
+		in_use[index] = (starting_IDs[index], starting_IDs[index])
 
 
 if __name__ == "__main__":
@@ -145,6 +151,6 @@ if __name__ == "__main__":
 		c = info_dict[ID][1]
 		if c == Category.park:
 			park_dict[ID] = info_dict[ID][0]
+	rospy.Subscriber('~StartingID_topic', setup_IDs, setup_situation)
 	info_sender()
-
 

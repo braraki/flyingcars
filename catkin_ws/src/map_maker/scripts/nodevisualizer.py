@@ -242,6 +242,7 @@ class building_scape:
 		self.server = InteractiveMarkerServer("simple_marker")
 		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
+		rospy.Subscriber('~Start_SimPos_topic', SimPos, self.pos_respond)
 
 	#does all of the tile work (roadratio, flyable, etc.)
 	def build_tiles(self):
@@ -314,26 +315,32 @@ class building_scape:
 	#using reps to smooth out motion
 	def pos_respond(self, data):
 		global reps
-		reps += 1
 		if reps%display_frequency == 0:
-			if len(self.crazyflie_list) == len(data.x):
-				for id in range(len(data.x)):
-					x = data.x[id]
-					y = data.y[id]
-					z = data.z[id]
-					print((x,y,z))
-					if self.crazyflie_list[id] != None:
-						cf = self.crazyflie_list[id]
-						cf.update_flie((x,y,z))
-						if reps%display_frequency == 0:
-							cf.construct_flie(False)
-				self.server.applyChanges()
-
+			if len(self.crazyflie_list) != len(data.x):
+				self.cf_num = len(data.x)
+				self.crazyflie_list = [None]*self.cf_num
+				for cf_ID in range(len(data.x)):
+					cf = crazyflie(cf_ID, [], self.server, self.node_scape)
+					self.crazyflie_list[cf_ID] = cf
+			for id in range(len(data.x)):
+				x = data.x[id]
+				y = data.y[id]
+				z = data.z[id]
+				print((x,y,z))
+				if self.crazyflie_list[id] != None:
+					cf = self.crazyflie_list[id]
+					cf.update_flie((x,y,z))
+					cf.construct_flie(False)
+			self.server.applyChanges()
+		reps += 1
+	'''
 	def fluid_construct(self):
 		rospy.Subscriber('~time_path_topic', HiPathTime, self.respond)
 		rospy.Subscriber('~SimPos_topic', SimPos, self.pos_respond)
+		rospy.Subscriber('~Start_SimPos_topic', SimPos, self.pos_respond)
 		#self.server = InteractiveMarkerServer("simple_marker")
 		#rospy.spin()
+	'''
 
 	def construct(self):
 		#self.node_scape.construct()
