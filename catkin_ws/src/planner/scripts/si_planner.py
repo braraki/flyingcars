@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import Bool
 from map_maker.srv import *
 from map_maker.msg import *
 from planner.srv import *
@@ -542,8 +542,18 @@ def fill_air_buffer_dict(info_dict):
 						if dist <= air_buffer_dist:
 							buffered.append(ID2)
 			air_buffer_dict[ID] = buffered
-	print(air_buffer_dict)
+	#print(air_buffer_dict)
 
+
+def waiter(info_dict, A):
+	def start(data):
+		print('started!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+		fs = full_system(A, info_dict)
+
+	#wait for setup to tell you to go
+	rospy.Subscriber('~Starter', Bool, start)
+
+	rospy.spin()
 
 
 
@@ -556,4 +566,6 @@ if __name__ == "__main__":
 	starting_time = time.time()
 	for ID in info_dict:
 		si_dict[ID] = [(starting_time, starting_time*1000)]
-	fs = full_system(A, info_dict)
+	waiter(info_dict, A)
+
+	#fs = full_system(A, info_dict)
