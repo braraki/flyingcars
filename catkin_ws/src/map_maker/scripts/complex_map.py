@@ -25,6 +25,18 @@ from map_maker import gen_adj_array_info_dict
 
 ideal_way_point_d = float(rospy.get_param('/complex_map/ideal_way_point_d'))
 
+land_vel = float(rospy.get_param('/complex_map/land_vel'))
+air_vel = float(rospy.get_param('/complex_map/air_vel'))
+time_step = float(rospy.get_param('/complex_map/time_step'))
+optimal = bool(rospy.get_param('/complex_map/optimal'))
+
+if optimal:
+	air_way_point_d = air_vel*(time_step)
+	land_way_point_d = land_vel*(time_step)
+else:
+	air_way_point_d = ideal_way_point_d
+	land_way_point_d = ideal_way_point_d
+
 '''
 class Category(Enum):
 	mark = 0
@@ -39,6 +51,7 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 
 #a_list represents the distance at which the number of waypoint nodes should change.
 #The values represent the max distance for the waypoint of that entries index
+'''
 a_list = []
 
 #expands the a_list
@@ -63,6 +76,27 @@ def get_num_waypoints(dist):
 			return(i)
 	update_a_list(dist)
 	return(get_num_waypoints(dist))
+'''
+
+def get_num_waypoints2(ID1, ID2, info_dict):
+	(x1, y1, z1) = info_dict[ID1][0]
+	c1 = info_dict[ID1][1]
+	(x2, y2, z2) = info_dict[ID2][0]
+	c2 = info_dict[ID2][1]
+	dist = ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**.5
+	if c1 != Category.cloud and c2 == Category.cloud and c1 != Category.interface and c2 == Category.interface:
+		waypoint_d = land_way_point_d
+	else:
+		waypoint_d = air_way_point_d
+	raw_num = dist/float(waypoint_d)
+	low = math.floor(raw_num)
+	hi = math.ceil(raw_num)
+	low_d = dist/float(low+1)
+	hi_d = dist/float(hi+1)
+	if abs(hi_d - waypoint_d) < abs(waypoint_d - low_d):
+		return(int(hi))
+	else:
+		return(int(low))
 
 #returns info_dict and adjacency_array with waypoints added
 def get_new_info(info_dict, adjacency_array):
@@ -86,14 +120,15 @@ def get_new_info(info_dict, adjacency_array):
 				c2 = info2[1]
 				if c2 != Category.land and c2 != Category.park:
 					pass_2 = True
-				if pass_1 or pass_2:
+				if (pass_1 or pass_2) and not optimal:
 					e_list.append((ID1, ID2))
 				else:
 					#print('in')
 					(x1, y1, z1) = info1[0]
 					(x2, y2, z2) = info2[0]
 					dist = ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**.5
-					nw = get_num_waypoints(dist)
+					#nw = get_num_waypoints(dist)
+					nw = get_num_waypoints2(ID1, ID2, info_dict)
 					last_ID = ID1
 					for wp_num in range(nw):
 						wp_x = x1 + ((wp_num + 1)/float(nw + 1))*(x2 - x1)
