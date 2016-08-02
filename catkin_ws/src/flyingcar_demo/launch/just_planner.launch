@@ -4,8 +4,8 @@
   <arg name="cf_num" default="1"/>
   <arg name="z_coefficient" default="3" />
   <arg name="map" default="collision" />
-  <arg name="planner" default="td_planner" />
-  <arg name="continuous" default="True" />
+  <arg name="planner" default="opt_planner" />
+  <arg name="continuous" default="False" />
 
   <remap from="simple_marker/path_topic" to="$(arg planner)/path_topic" />
   <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />

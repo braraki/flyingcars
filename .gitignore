@@ -16,7 +16,7 @@ env/
 build/
 devel/
 catkin_ws/devel/
-catkin_ws/build
+catkin_ws/build/
 develop-eggs/
 dist/
 downloads/
