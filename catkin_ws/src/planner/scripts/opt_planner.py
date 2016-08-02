@@ -209,7 +209,7 @@ class full_system:
 		self.runner()
 
 	def runner(self):
-		time_horizon = 10
+		time_horizon = 5
 		startend = tuplelist()
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
@@ -231,6 +231,48 @@ class full_system:
 		        for i,j in arcs:
 		            if solution[h,i,j] > 0:
 		                print('%s -> %s: %g' % (i, j, solution[h,i,j]))
+
+			paths,times = self.extract_paths(solution, arcs)
+			for cf in range(cf_num):
+				print cf, paths[cf]
+				print times[cf]
+				self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+
+	def extract_paths(self,solution,arcs):
+		paths = {}
+		times = {}
+		for cf in range(cf_num):
+			path = tuplelist()
+			for i,j in arcs:
+				if solution[cf,i,j] > 0:
+					path.append((i,j))
+			first_node = path.pop(0)[1]
+			print path
+			first_timestep = 0
+			ordered_path = self.order_path(path,first_node)
+			print ordered_path
+			time_adjusted_path = self.time_adjust(ordered_path)
+			print time_adjusted_path
+			paths[cf] = time_adjusted_path
+			current_time = time.time()
+			times[cf] = [1*x for x in range(0,len(paths[cf]))]
+		return paths,times
+
+	def order_path(self,path,node):
+		if path:
+			edge = path.select(node,'*')[0]
+			next_node = edge[1]
+			path.remove(edge)
+			return [node] + self.order_path(path,next_node)
+		else:
+			return [node]
+
+	def time_adjust(self,path):
+		new_path = []
+		for timestep,node in enumerate(path):
+			new_node = node - timestep*self.num_IDs
+			new_path.append(new_node)
+		return new_path
 
 	def request_situation(self,cf_ID):
 			global count
