@@ -15,6 +15,7 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
+from map_maker import gen_adj_array_info_dict
 #imported parameters
 
 map_road_ratio = float(rospy.get_param('/mapmaker/map_road_ratio'))
@@ -26,6 +27,12 @@ map_num_cloud_layers = int(rospy.get_param('/mapmaker/map_num_cloud_layers'))
 map_cloud_layer_dist = float(rospy.get_param('/mapmaker/map_cloud_layer_dist'))
 map_cloud_density = int(rospy.get_param('/mapmaker/map_cloud_density'))
 helipad_height = float(rospy.get_param('/mapmaker/helipad_height'))
+
+air_vel = float(rospy.get_param('/complex_map/air_vel'))
+time_step = float(rospy.get_param('/complex_map/time_step'))
+optimal = bool(rospy.get_param('/complex_map/optimal'))
+
+
 
 
 #imported map parameters
@@ -54,7 +61,7 @@ drone_air_speed = 1
 edge_num = 0
 
 
-
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -62,6 +69,9 @@ class Category(Enum):
 	interface = 3
 	cloud = 4
 	waypoint = 5
+'''
+
+Category = gen_adj_array_info_dict.Category
 
 class return_node:
 	def __init__(self, x, y, z, ID, category):
@@ -130,6 +140,13 @@ class tile:
 		self.x = x
 		self.y = y
 		self.node_list = node_list[:]
+
+	def is_contained(self, new_x, new_y):
+		if self.x <= new_x <= self.x+self.length:
+			if self.y <= new_y <= self.y+self.width:
+				#print("TRUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+				return(True)
+		return(False)
 
 	#sets the tiles coordinates
 	def set_co(self, x, y):
@@ -541,11 +558,12 @@ class landscape:
 			for n in t.node_list:
 				n.ID = num
 				num += 1
-		if self.interface != None and self.cloud != None:
+		if self.interface != None:
 			for ns in self.interface.node_dict.values():
 				for n in ns:
 					n.ID = num
 					num += 1
+		if self.cloud != None:
 			for n in self.cloud.node_dict.values():
 				n.ID = num
 				num += 1
@@ -553,12 +571,15 @@ class landscape:
 	#generates lists of the simple node and edge class that represent the map
 	def get_nodes_and_edges(self):
 		self.fully_connect()
-		if self.interface != None and self.cloud != None:
-			self.interface.generate_nodes()
-			self.interface.connect_to_land()
+		if self.cloud != None:
 			self.cloud.generate_nodes()
 			self.cloud.connect_own()
-			self.connect_interface_and_cloud()
+			if self.interface != None and not optimal:
+				self.interface.generate_nodes()
+				self.interface.connect_to_land()
+				self.connect_interface_and_cloud()
+			if optimal:
+				self.cloud.connect_to_land()
 		self.assign_ID()
 		return_node_list = []
 		edge_list = []
@@ -567,12 +588,13 @@ class landscape:
 				info = n.generate_return_and_edge()
 				return_node_list.append(info[0])
 				edge_list += info[1]
-		if self.interface != None and self.cloud != None:
+		if self.interface != None:
 			for ns in self.interface.node_dict.values():
 				for n in ns:
 					info = n.generate_return_and_edge()
 					return_node_list.append(info[0])
 					edge_list += info[1]
+		if self.cloud != None:
 			for n in self.cloud.node_dict.values():
 				info = n.generate_return_and_edge()
 				return_node_list.append(info[0])
@@ -581,7 +603,8 @@ class landscape:
 
 	#builds interface and cloud
 	def generate_interface_and_cloud(self, interface_height, cloud_height, num_cloud_layers, cloud_layer_dist, cloud_density):
-		self.generate_interface(interface_height)
+		if not optimal:
+			self.generate_interface(interface_height)
 		self.generate_cloud(cloud_height, num_cloud_layers, cloud_layer_dist, cloud_density)
 
 	#builds interface
@@ -652,9 +675,16 @@ class cloud:
 		self.node_dict = {}
 		self.tile_node_dict = {}
 		self.landscape = landscape
+		self.multi_connect = []
 
 	#builds nodes
 	def generate_nodes(self):
+		if not optimal:
+			self.non_opt_generate_nodes()
+		else:
+			self.opt_generate_nodes()
+
+	def non_opt_generate_nodes(self):
 		for t in self.landscape.tile_dict.values():
 			if t.flyable:
 				base_y = t.y - .5*t.width + 1/float(2*self.density)*t.width
@@ -674,8 +704,67 @@ class cloud:
 							else:
 								self.tile_node_dict[t] += [n]
 							self.node_dict[(x,y,z)] = n
+
+	def opt_generate_nodes(self):
+		#getting air_cloud_dimensions
+		air_way_point_d = air_vel*(time_step)
+		grid_dist = (2.0/float(1 + (2.0)**.5))*air_way_point_d
+
+		tile_length = self.landscape.tile_dict.values()[0].length
+		tile_width = self.landscape.tile_dict.values()[0].width
+
+		min_x = -.5*(self.landscape.num_long)*tile_length
+		min_y = -.5*(self.landscape.num_wide)*tile_width
+
+		num_min_x = int(min_x / grid_dist)
+		num_max_x = int(-1*min_x / grid_dist)
+		num_min_y = int(min_y / grid_dist)
+		num_max_y = int(-1*min_y / grid_dist)
+		#print((num_min_x, num_max_x, num_min_y, num_max_y))
+
+		current_layer = 0
+
+		while current_layer < self.num_layers:
+			z = self.height + current_layer * self.layer_dist
+			x_multiple = num_min_x
+			while x_multiple <= num_max_x:
+				x = x_multiple*grid_dist
+				y_multiple = num_min_y
+				while y_multiple <= num_max_y:
+					#print('current_layer: '+str(current_layer))
+					#print('x: '+str(x_multiple))
+					#print('y: '+str(y_multiple))
+					#print(" ")
+					y = y_multiple*grid_dist
+					for t in self.landscape.tile_dict.values():
+						if t.is_contained(x, y):
+							if t.flyable:
+								n = node(x, y, z)
+								n.add_category(Category.cloud)
+								if t not in self.tile_node_dict:
+									self.tile_node_dict[t] = [n]
+								else:
+									self.tile_node_dict[t] += [n]
+								self.node_dict[(x,y,z)] = n
+								if (x_multiple + y_multiple)%2 == 0:
+									self.multi_connect.append(n)
+							break
+					y_multiple += 1
+				x_multiple += 1
+			current_layer += 1
+		#print('cloud info dict')
+		#print(cloud_info_dict)
+		#print(" ")
+
+
 	#links adjacent (including diagonal) nodes in a two-way edge
 	def connect_own(self):
+		if not optimal:
+			self.non_opt_connect_own()
+		else:
+			self.opt_connect_own()
+
+	def non_opt_connect_own(self):
 		for t in self.tile_node_dict:
 			nodes = self.tile_node_dict[t]
 			for n1 in nodes:
@@ -712,6 +801,56 @@ class cloud:
 															n1.add_successor(n2)
 															n2.add_successor(n1)
 
+	def opt_connect_own(self):
+
+		air_way_point_d = air_vel*(time_step)
+		grid_dist = (2.0/float(1 + (2.0)**.5))*air_way_point_d
+
+		for n1 in self.node_dict.values():
+			(x1, y1, z1) = (n1.x, n1.y, n1.z)
+			if n1 in self.multi_connect:
+				min_dist = ((2.0)**.5 * grid_dist)*1.1
+			else:
+				min_dist = grid_dist * 1.1		
+			for n2 in self.node_dict.values():
+				(x2, y2, z2) = (n2.x, n2.y, n2.z)
+				#same layer
+				if z2 == z1:
+					distance = ((x1 - x2)**2 + (y1 - y2)**2)**.5
+					if distance < min_dist:
+						n1.add_successor(n2)
+				#different layer
+				elif abs(z2 - z1) <= self.layer_dist*1.1:
+					if x1 == x2 and y1 == y2:
+						n1.add_successor(n2)
+
+	def connect_to_land(self):
+		for t in self.landscape.tile_dict.values():
+			if t.flyable:
+				for n1 in t.node_list:
+					if n1.category == Category.park or n1.category == Category.land:
+						min_dist = None
+						(x1, y1, z1) = (n1.x, n1.y, n1.z)
+						for n2 in self.node_dict.values():
+							(x2, y2, z2) = (n2.x, n2.y, n2.z)
+							dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
+							if min_dist == None:
+								min_dist = dist
+								chosen = n2
+							elif min_dist > dist:
+								min_dist = dist
+								chosen = n2
+						n1.add_successor(chosen)
+						chosen.add_successor(n1)
+
+				'''
+				for n1 in ns:
+					for n2 in t.node_list:
+						if n2.category != Category.mark:
+							if n1.x == n2.x and n1.y == n2.y:
+								n1.add_successor(n2)
+								n2.add_successor(n1)
+				'''
 
 
 '''
@@ -897,7 +1036,7 @@ num_mark = 0
 num_land = 0
 num_interface = 0
 num_cloud = 0
-for n in info[0]:
+for n in return_nodes:
 	x = n.x
 	y = n.y
 	z = n.z

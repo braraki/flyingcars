@@ -16,7 +16,7 @@
   	<param name="continuous" value="$(arg continuous)" />
   	<param name="land_vel" value="$(arg land_vel)" />
   	<param name="air_vel" value="$(arg air_vel)" />
-    <param name="air_buffer_dist" value="0.0" />
+    <param name="air_buffer_dist" value=".5" />
   </node>
 
   <node name="easy_sg" pkg="planner" type="easy_sg.py"/>

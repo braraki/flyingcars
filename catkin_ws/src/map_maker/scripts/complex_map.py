@@ -77,6 +77,226 @@ def get_num_waypoints(dist):
 	update_a_list(dist)
 	return(get_num_waypoints(dist))
 '''
+'''
+class tile:
+	def __init__(self, x, y):
+		self.x = x
+		self.y = y
+		self.flyable = False
+		self.length = 0
+		self.width = 0
+
+	def assign_length(self, l):
+		self.length = l
+
+	def assign_width(self, w):
+		self.width = w
+
+	def assign_flyable(self, f):
+		self.flyable = f
+
+	def is_contained(self, new_x, new_y):
+		if self.x <= new_x <= self.x+self.length:
+			if self.y <= new_y <= self.y+self.width:
+				#print("TRUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
+				return(True)
+		return(False)
+
+#mark nodes must come before cloud nodes
+
+def remake_cloud(info_dict, A):
+	new_info_dict = {}
+	e_list = []
+	min_x = 0
+	max_x = 0
+	min_y = 0
+	max_y = 0
+	max_ID = 0
+
+	cloud_heights = []
+
+	tile_list = []
+	tile_x = []
+	tile_y = []
+	cloud_interface_list = []
+
+	for (ID1, row) in enumerate(A):
+		((x1, y1, z1), c1) = info_dict[ID1]
+		if x1 < min_x:
+			min_x = x1
+		elif x1 > max_x:
+			max_x = x1
+		if y1 < min_y:
+			min_y = y1
+		elif y1 > max_y:
+			max_y = y1
+		if c1 != Category.cloud and c1 != Category.interface:
+			new_info_dict[ID1] = info_dict[ID1]
+			if ID1 > max_ID:
+				max_ID = ID1
+			for (ID2, value) in enumerate(row):
+				if value == 1:
+					((x2, y2, z2), c2) = info_dict[ID2]
+					if c2 != Category.cloud and c2 != Category.interface:
+						e_list.append((ID1, ID2))
+			if c1 == Category.mark:
+				if x1 not in tile_x:
+					tile_x.append(x1)
+				if y1 not in tile_y:
+					tile_y.append(y1)
+				t = tile(x1, y1)
+				tile_list.append(t)
+		else:
+			cloud_interface_list.append(((x1, y1, z1), c1))
+			if c1 == Category.cloud and z1 not in cloud_heights:
+				cloud_heights.append(z1)
+	#determining tile size
+	tile_x = sorted(tile_x)
+	tile_y = sorted(tile_y)
+	if len(tile_x) == 1:
+		tile_length = 1000
+	else:
+		tile_length = tile_x[1] - tile_x[0]
+	if len(tile_y) == 1:
+		tile_width == 1000
+	else:
+		tile_width = tile_y[1] - tile_y[0]
+	#determining flyable
+	for t in tile_list:
+		t.assign_length(tile_length)
+		t.assign_width(tile_width)
+		for ((x1, y1, z1), c1) in cloud_interface_list:
+			if t.is_contained(x1, y1):
+				t.assign_flyable(True)
+	#making the clouds
+	if len(cloud_heights) > 0:
+		(cloud_info_dict, cloud_e_list) = generate_cloud(cloud_heights, tile_list, min_x, max_x, min_y, max_y, max_ID)
+		for ID1 in new_info_dict:
+			((x1, y1, z1), c1) = new_info_dict[ID1]
+			if c1 != Category.mark:
+				for t in tile_list:
+					if t.is_contained(x1, y1):
+						if t.flyable:
+							min_dist = None
+							for ID2 in cloud_info_dict:
+								(x2, y2, z2) = cloud_info_dict[ID2][0]
+								dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
+								if min_dist == None:
+									min_dist = dist
+									chosen = ID2
+								elif min_dist > dist:
+									min_dist = dist
+									chosen = ID2
+							e_list.append((ID1, chosen))
+							e_list.append((chosen, ID1))
+	else:
+		cloud_info_dict = {}
+		cloud_e_list = []
+	final_e_list = e_list + cloud_e_list
+	new_info_dict.update( cloud_info_dict)
+	#print('new info dict')
+	#print(new_info_dict)
+	#print(" ")
+	#print('final e list')
+	#print(final_e_list)
+	G = nx.DiGraph()
+	for ID in new_info_dict:
+		G.add_node(ID)
+	for e in final_e_list:
+		G.add_edge(e[0], e[1])
+	A = nx.to_numpy_matrix(G)
+	A2 = A.flatten()
+	A3 = A2.tolist()
+	A4 = A3[0]
+	A5 = []
+	for fl in A4:
+		A5.append(int(fl))
+	A6 = np.array(A5)
+	num_IDs = len(new_info_dict)
+	A6.shape = (num_IDs, num_IDs)
+
+	return((new_info_dict, A6))
+
+def generate_cloud(cloud_heights, tile_list, min_x, max_x, min_y, max_y, max_ID):
+
+	current_ID = max_ID
+	cloud_info_dict = {}
+	multi_connect = []
+
+	cloud_layer_dist = 0
+	cloud_heights = sorted(cloud_heights)
+	cloud_height = cloud_heights[0]
+	num_cloud_layers = len(cloud_heights)
+	#print(cloud_heights)
+	#print('num cloud layers: '+str(num_cloud_layers))
+	if num_cloud_layers > 1:
+		cloud_layer_dist = cloud_heights[1] - cloud_heights[0]
+
+	#getting air_cloud_dimensions
+	grid_dist = (2.0/float(1 + (2.0)**.5))*air_way_point_d
+	num_min_x = int(min_x / grid_dist)
+	num_max_x = int(max_x / grid_dist)
+	num_min_y = int(min_y / grid_dist)
+	num_max_y = int(max_y / grid_dist)
+	#print((num_min_x, num_max_x, num_min_y, num_max_y))
+
+	current_layer = 0
+
+	while current_layer < num_cloud_layers:
+		z = cloud_height + current_layer * cloud_layer_dist
+		x_multiple = num_min_x
+		while x_multiple <= num_max_x:
+			x = x_multiple*grid_dist
+			y_multiple = num_min_y
+			while y_multiple <= num_max_y:
+				#print('current_layer: '+str(current_layer))
+				#print('x: '+str(x_multiple))
+				#print('y: '+str(y_multiple))
+				#print(" ")
+				y = y_multiple*grid_dist
+				for t in tile_list:
+					if t.is_contained(x, y):
+						if t.flyable:
+							current_ID += 1
+							cloud_info_dict[current_ID] = ((x, y, z), Category.cloud)
+							if (x_multiple + y_multiple)%2 == 0:
+								multi_connect.append(current_ID)
+						break
+				y_multiple += 1
+			x_multiple += 1
+		current_layer += 1
+	#print('cloud info dict')
+	#print(cloud_info_dict)
+	#print(" ")
+	cloud_e_list = connect_cloud(cloud_info_dict, multi_connect, grid_dist, cloud_layer_dist)
+	return(cloud_info_dict, cloud_e_list)
+
+
+def connect_cloud(cloud_info_dict, multi_connect, grid_dist, cloud_layer_dist):
+	cloud_e_list = []
+	for ID1 in cloud_info_dict:
+		(x1, y1, z1) = cloud_info_dict[ID1][0]
+		if ID1 in multi_connect:
+			min_dist = ((2.0)**.5 * grid_dist)*1.1
+		else:
+			min_dist = grid_dist * 1.1		
+		for ID2 in cloud_info_dict:
+			(x2, y2, z2) = cloud_info_dict[ID2][0]
+			#same layer
+			if z2 == z1:
+				distance = ((x1 - x2)**2 + (y1 - y2)**2)**.5
+				if distance < min_dist:
+					cloud_e_list.append((ID1, ID2))
+			#different layer
+			elif abs(z2 - z1) <= cloud_layer_dist*1.1:
+				if x1 == x2 and y1 == y2:
+					cloud_e_list.append((ID1, ID2))
+	return(cloud_e_list)
+
+
+
+'''
+
 
 def get_num_waypoints2(ID1, ID2, info_dict):
 	(x1, y1, z1) = info_dict[ID1][0]
@@ -111,6 +331,7 @@ def get_new_info(info_dict, adjacency_array):
 		G.add_node(ID1)
 		info1 = info_dict[ID1]
 		c1 = info1[1]
+		(x1, y1, z1) = info1[0]
 		if c1 != Category.land and c1 != Category.park:
 			pass_1 = True
 		for (ID2, value) in enumerate(row):
@@ -118,9 +339,12 @@ def get_new_info(info_dict, adjacency_array):
 				pass_2 = False
 				info2 = info_dict[ID2]
 				c2 = info2[1]
+				(x2, y2, z2) = info2[0]
 				if c2 != Category.land and c2 != Category.park:
 					pass_2 = True
-				if (pass_1 or pass_2) and not optimal:
+				if not optimal and (pass_1 or pass_2):
+					e_list.append((ID1, ID2))
+				elif pass_1 and pass_2 and z1 == z2:
 					e_list.append((ID1, ID2))
 				else:
 					#print('in')
@@ -130,13 +354,17 @@ def get_new_info(info_dict, adjacency_array):
 					#nw = get_num_waypoints(dist)
 					nw = get_num_waypoints2(ID1, ID2, info_dict)
 					last_ID = ID1
+					if pass_1 or pass_2:
+						wp_c = Category.air_waypoint
+					else:
+						wp_c = Category.waypoint
 					for wp_num in range(nw):
 						wp_x = x1 + ((wp_num + 1)/float(nw + 1))*(x2 - x1)
 						wp_y = y1 + ((wp_num + 1)/float(nw + 1))*(y2 - y1)
 						wp_z = z1 + ((wp_num + 1)/float(nw + 1))*(z2 - z1)
 						wp_ID = ID_num
 						ID_num += 1
-						new_info_dict[wp_ID] = ((wp_x, wp_y, wp_z), Category.waypoint)
+						new_info_dict[wp_ID] = ((wp_x, wp_y, wp_z), wp_c)
 						e_list.append((last_ID, wp_ID))
 						last_ID = wp_ID
 						#print('made way point')
@@ -218,6 +446,10 @@ if __name__ == "__main__":
 	rospy.init_node('complex_map_maker_server')
 	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
 	Category = gen_adj_array_info_dict.Category
+	#print(info_dict)
+	#if optimal:
+		#(info_dict, A) = remake_cloud(info_dict, A)
 	analysis = get_new_info(info_dict, A)
 	s = sender(analysis[0], analysis[1])
+	#s = sender(info_dict, A)
 	s.info_sender()

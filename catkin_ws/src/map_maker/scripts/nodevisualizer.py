@@ -97,7 +97,7 @@ class visual_node:
 			self.color = (255, 255, 255)
 		elif category == Category.mark:
 			self.color = (0, 0, 0)
-		elif category == Category.waypoint:
+		elif category == Category.waypoint or category == Category.air_waypoint:
 			self.color = (255, 0, 255)
 
 
@@ -368,8 +368,9 @@ class building_scape:
 			node2 = e.node2
 			if node1.category != Category.cloud and node2.category != Category.cloud:
 				if node1.category != Category.interface and node2.category != Category.interface:
-					if node1.category != Category.mark and node2.category != Category.mark:
-						int_marker = e.construct(int_marker)
+					if node1.category != Category.air_waypoint and node2.category != Category.air_waypoint:
+						if node1.category != Category.mark and node2.category != Category.mark:
+							int_marker = e.construct(int_marker)
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)
 		for t in tiles:
@@ -575,7 +576,7 @@ class tile:
 			for n in self.land_nodes + self.park_nodes:
 				suc = n.successors
 				for n2 in suc:
-					if n2.category == Category.interface:
+					if n2.category == Category.interface or n2.category == Category.cloud or n2.category == Category.air_waypoint:
 						f = True
 						break
 		else:
@@ -831,6 +832,7 @@ if __name__ == "__main__":
 		A = gen_adj_array_info_dict.map_maker_client('send_map')[1]
 	else:
 		(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+
 	Category = gen_adj_array_info_dict.Category
 	ns = node_scape(info_dict, A)
 	#ns.construct()

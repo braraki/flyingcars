@@ -203,7 +203,7 @@ class system:
 			(x2, y2, z2) = self.info_dict[ID2][0]
 			c2 = self.info_dict[ID2][1]
 			dist = ((x2-x1)**2+(y2-y1)**2+(z2-z1)**2)**.5
-			if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
+			if c1 == Category.cloud or c1 == Category.interface or c1 == Category.air_waypoint or c2 == Category.cloud or c2 == Category.interface or c2 == Category.air_waypoint:
 				v = air_vel
 			else:
 				v = land_vel

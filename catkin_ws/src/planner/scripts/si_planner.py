@@ -215,7 +215,7 @@ class system:
 			(x2, y2, z2) = self.info_dict[ID2][0]
 			c2 = self.info_dict[ID2][1]
 			dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
-			if c1 == Category.cloud or c2 == Category.cloud or c1 == Category.interface or c2 == Category.interface:
+			if c1 == Category.cloud or c2 == Category.cloud or c1 == Category.interface or c2 == Category.interface or c1 == Category.air_waypoint or c2 == Category.air_waypoint:
 				v = air_vel
 			else:
 				v = land_vel
@@ -287,7 +287,7 @@ class system:
 						(fx, fy, fz) = self.info_dict[ID2][0]
 						c2 = self.info_dict[ID2][1]
 						dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
-						if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
+						if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface or c1 == Category.air_waypoint or c2 == Category.air_waypoint:
 							v = air_vel
 						else:
 							v = land_vel
@@ -528,7 +528,7 @@ def fill_air_buffer_dict(info_dict):
 	global air_buffer_dict
 	for ID in info_dict:
 		c = info_dict[ID][1]
-		if c != Category.cloud and c != Category.interface:
+		if c != Category.cloud and c != Category.interface and c != Category.air_waypoint:
 			air_buffer_dict[ID] = [ID]
 		else:
 			(x1, y1, z1) = info_dict[ID][0]
@@ -536,7 +536,7 @@ def fill_air_buffer_dict(info_dict):
 			for ID2 in info_dict:
 				if ID2 != ID:
 					c2 = info_dict[ID2][1]
-					if c2 == Category.cloud or c2 == Category.interface:
+					if c2 == Category.cloud or c2 == Category.interface or c2 == Category.air_waypoint:
 						(x2, y2, z2) = info_dict[ID2][0]
 						dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
 						if dist <= air_buffer_dist:
