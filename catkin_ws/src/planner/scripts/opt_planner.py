@@ -66,6 +66,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 	na = np.zeros((num_IDs*(th+1),num_IDs*(th+1)))
 	# new dict assigns a cost to each edge
 	costs = {}
+	dists = {}
 	arcs = tuplelist()
 
 	# the first arcs are "loop back" arcs
@@ -91,6 +92,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 			for cf in range(cf_num):
 				cost_of_waiting = 0.1
 				costs[(cf,current_state,next_state)] = cost_of_waiting
+				dists[(cf,current_state,next_state)] = 0
 
 			# need to find successors of ID (sID) and connect
 			# ID+timestep*num_IDs to sID+(timestep+1)*num_IDs
@@ -101,18 +103,33 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 					next_neighbor = ID2+(timestep+1)*num_IDs
 					na[(current_state, next_neighbor)] = 1
 					arcs.append((current_state, next_neighbor))
+
+					(x1,y1,z1) = old_graph[ID][0]
+					(x2,y2,z2) = old_graph[ID2][0]
+
+					distance = ((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)**0.5
+
 					for cf in range(cf_num):
 						cost_of_travel = 0.2
 						costs[(cf,current_state, next_neighbor)] = cost_of_travel
+						dists[(cf,current_state, next_neighbor)] = distance
 	
 
 	print num_IDs
 	print len(arcs)
 	#print arcs
-	return na, costs, arcs
+	return na, costs, arcs, dists
 
-def make_model(arcs, costs, startend, num_IDs):
+def make_model(arcs, costs, dists, startend, num_IDs, type):
 
+	m, flow = generic_model(arcs,startend,num_IDs)
+
+	if type == 'makespan':
+		return makespan_model(m, flow, arcs, costs, startend, num_IDs)
+	elif type == 'distance':
+		return distance_model(m, flow, arcs, dists, startend, num_IDs)
+
+def generic_model(arcs,startend,num_IDs):
 	m = Model('netflow')
 
 	# add a flow variable for each robot-arc pair
@@ -183,7 +200,9 @@ def make_model(arcs, costs, startend, num_IDs):
 				flow_list.append((cf,i,o))
 		m.addConstr(quicksum(flow[cf,i,o] for cf,i,o in flow_list) <= 1)
 
+	return m, flow
 
+def makespan_model(m, flow, arcs, costs, startend, num_IDs):
 
 	objExpr = LinExpr()
 	for i in range(len(startend)):
@@ -193,6 +212,27 @@ def make_model(arcs, costs, startend, num_IDs):
 
 	m.setObjective(objExpr,GRB.MAXIMIZE)
 
+	return m, flow
+
+def distance_model(m, flow, arcs, costs, startend, num_IDs):
+
+	# this is the max distance, which we will want to minimize
+	x_max = m.addVar(vtype=GRB.INTEGER,name="x_max")
+
+	m.update()
+
+	# flow through the loopback arc MUST be 1 for its given robot
+	for cf in range(cf_num):
+		i,j = arcs[cf]
+		m.addConstr(flow[cf,i,j] == 1, 'loopback_filled_%s' %(cf))
+
+	# we want to constrain x_max to be larger than the largest distance
+	for cf in range(cf_num):
+		# note that arcs[len(startend):] represents the NON loopback arcs
+		m.addConstr(quicksum(costs[cf,i,j]*flow[cf,i,j] for i,j in arcs[len(startend):]) <= x_max,
+					'max_dist_for_%s' % (cf))
+
+	m.setObjective(x_max,GRB.MINIMIZE)
 
 	return m, flow
 
@@ -209,7 +249,7 @@ class full_system:
 		self.runner()
 
 	def runner(self):
-		time_horizon = 5
+		time_horizon = 14
 		startend = tuplelist()
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
@@ -217,9 +257,9 @@ class full_system:
 			(ID1, ID2) = self.request_situation(cf_ID)
 			startend.append((ID1,ID2))
 
-		na, costs, arcs = convert_graph(info_dict,A,startend,time_horizon)
+		na, costs, arcs, dists = convert_graph(info_dict,A,startend,time_horizon)
 
-		m, flow = make_model(arcs, costs, startend, self.num_IDs*(time_horizon+1))
+		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),'distance')
 
 		m.optimize()
 

@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 *.csv
-duckytown.rviz
-duckietown.rviz
+*/duckytown.rviz
+*/duckietown.rviz
 
 # C extensions
 *.so
