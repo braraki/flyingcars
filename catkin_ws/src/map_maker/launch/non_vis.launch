@@ -2,6 +2,8 @@
 <launch>
   <arg name="cf_num" default="7"/>
   <arg name="map" default="duckytown_map" />
+  <arg name="air_vel" default=".5" />
+  <arg name="land_vel" default=".25" />
 
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
     <param name="map_road_ratio" value=".5"/>
@@ -16,6 +18,10 @@
   </node>
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
     <param name="ideal_way_point_d" value=".15"/>
+    <param name="land_vel" value="$(arg land_vel)" />
+    <param name="air_vel" value="$(arg air_vel)" />
+    <param name="time_step" value=".1" />
+    <param name="optimal" value="False" />
   </node>
 
 </launch>

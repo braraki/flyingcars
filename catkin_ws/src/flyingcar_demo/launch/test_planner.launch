@@ -7,6 +7,8 @@
   <arg name="planner" default="td_planner" />
   <arg name="buildings" default="True" />
   <arg name="continuous" default="True" />
+  <arg name="air_vel" default=".5" />
+  <arg name="land_vel" default=".25" />
 
   <remap from="simple_marker/time_path_topic" to="$(arg planner)/time_path_topic" />
   <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />
@@ -18,12 +20,16 @@
   	<arg name="cf_num" value="$(arg cf_num)" />
   	<arg name="map" value="$(arg map)" />
     <arg name="buildings" value="$(arg buildings)" />
+    <arg name="land_vel" value="$(arg land_vel)" />
+    <arg name="air_vel" value="$(arg air_vel)" />
   </include>
 
   <include file="$(find planner)/launch/$(arg planner).launch">
     <arg name="cf_num" value="$(arg cf_num)"/>
     <arg name="z_coefficient" value="$(arg z_coefficient)"/>
     <arg name="continuous" value="$(arg continuous)" />
+    <arg name="land_vel" value="$(arg land_vel)" />
+    <arg name="air_vel" value="$(arg air_vel)" />
   </include>
 
 

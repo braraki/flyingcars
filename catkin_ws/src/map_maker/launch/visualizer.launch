@@ -3,6 +3,9 @@
   <arg name="cf_num" default="7"/>
   <arg name="map" default="duckytown_map" />
   <arg name='buildings' default='True' />
+  <arg name="air_vel" default=".5" />
+  <arg name="land_vel" default=".25" />
+
 
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
 
@@ -13,21 +16,27 @@
     <param name="map_tile_size" value=".5"/>
     <param name="map_interface_height" value=".75"/>
     <param name="map_cloud_height" value="1.25"/>
-    <param name="map_num_cloud_layers" value="2"/>
+    <param name="map_num_cloud_layers" value="1"/>
     <param name="map_cloud_layer_dist" value="1"/>
-    <param name="map_cloud_density" value="3"/>
+    <param name="map_cloud_density" value="1"/>
     <param name="helipad_height" value=".25"/>
     <rosparam command="load" file="$(find map_maker)/config/$(arg map).yaml" />
   </node>
+
   <node name="complex_map" pkg="map_maker" type="complex_map.py">
     <param name="ideal_way_point_d" value=".15"/>
+    <param name="land_vel" value="$(arg land_vel)" />
+    <param name="air_vel" value="$(arg air_vel)" />
+    <param name="time_step" value=".5" />
+    <param name="optimal" value="True" />
+
   </node>
   <node name="simple_marker" pkg="map_maker" type="nodevisualizer.py">
     <param name="tilethickness" value=".05"/>
     <param name="roadthickness" value=".025"/>
     <param name="parking_frac" value=".7"/>
-    <param name="air_node_display" value="False"/>
-    <param name="waypoint_node_display" value="False"/>
+    <param name="air_node_display" value="True"/>
+    <param name="waypoint_node_display" value="True"/>
     <param name="buildings" value="$(arg buildings)"/>
     <param name="display_frequency" value="4"/>
   </node>
