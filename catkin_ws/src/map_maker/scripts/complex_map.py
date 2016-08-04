@@ -304,19 +304,35 @@ def get_num_waypoints2(ID1, ID2, info_dict):
 	(x2, y2, z2) = info_dict[ID2][0]
 	c2 = info_dict[ID2][1]
 	dist = ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**.5
-	if c1 != Category.cloud and c2 == Category.cloud and c1 != Category.interface and c2 == Category.interface:
+	if c1 != Category.cloud and c2 != Category.cloud and c1 != Category.interface and c2 != Category.interface:
 		waypoint_d = land_way_point_d
 	else:
 		waypoint_d = air_way_point_d
 	raw_num = dist/float(waypoint_d)
-	low = math.floor(raw_num)
-	hi = math.ceil(raw_num)
+	low = int(math.floor(raw_num))
+	hi = int(math.ceil(raw_num))
+	min_diff = None
+	chosen = None
+	for value in range(low - 1, hi + 2):
+		if value >= 0:
+			d = dist/float(value + 1)
+			diff = abs(waypoint_d - dist)
+			if min_diff == None:
+				min_diff = diff
+				chosen = value
+			elif diff < min_diff:
+				min_diff = diff
+				chosen = value
+	return(chosen)
+
+	'''
 	low_d = dist/float(low+1)
 	hi_d = dist/float(hi+1)
 	if abs(hi_d - waypoint_d) < abs(waypoint_d - low_d):
 		return(int(hi))
 	else:
 		return(int(low))
+	'''
 
 #returns info_dict and adjacency_array with waypoints added
 def get_new_info(info_dict, adjacency_array):

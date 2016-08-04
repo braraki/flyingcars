@@ -708,7 +708,7 @@ class cloud:
 	def opt_generate_nodes(self):
 		#getting air_cloud_dimensions
 		air_way_point_d = air_vel*(time_step)
-		self.layer_dist = 2*air_way_point_d
+		self.layer_dist = 2.0*air_way_point_d
 		grid_dist = (2.0/float(1 + (2.0)**.5))*air_way_point_d
 
 		tile_length = self.landscape.tile_dict.values()[0].length
