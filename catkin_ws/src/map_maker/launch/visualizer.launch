@@ -17,7 +17,7 @@
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
     <arg name="time_step" default=".5" />
-    <arg name="optimal" default="True" />
+    <arg name="optimal" default="False" />
   </include>
 
   <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(find map_maker) $(arg cf_num) $(arg map) $(arg buildings)"/>
@@ -49,8 +49,8 @@
     <param name="tilethickness" value=".05"/>
     <param name="roadthickness" value=".025"/>
     <param name="parking_frac" value=".7"/>
-    <param name="air_node_display" value="False"/>
-    <param name="waypoint_node_display" value="False"/>
+    <param name="air_node_display" value="True"/>
+    <param name="waypoint_node_display" value="True"/>
     <param name="buildings" value="$(arg buildings)"/>
     <param name="display_frequency" value="4"/>
   </node>

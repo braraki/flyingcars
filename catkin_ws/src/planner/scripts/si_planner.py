@@ -58,6 +58,7 @@ static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3:
 space_time = .75
 planning_time = 2
 wait_time = .1
+extra_time = 0
 
 class SearchNode:
 	def __init__(self, state, parent, time, cost=0, interval=None):
@@ -90,7 +91,7 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 	start_time = time.time()+planning_time
 	if goal_test(start_state, start_time):
 		return [start_state]
-	start_node = SearchNode(start_state, None, start_time , 0, find_interval(start_state, start_time))
+	start_node = SearchNode(start_state, None, start_time , 0, find_start_interval(start_state, start_time))
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
 	expanded = {}
@@ -132,11 +133,11 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 	#		print(successors(spot2, t2))
 	return None
 
-def find_interval(state, time):
+def find_start_interval(state, time):
 	my_intervals = si_dict[state]
 	my_interval = None
 	for i in my_intervals:
-		if i[0] <= time <= i[1]:
+		if i[0] - (extra_time + .1) <= time <= i[1]:
 			#print(i)
 			return(i)
 	print('interval not found')
@@ -297,7 +298,10 @@ class system:
 						for interval in safe_intervals:
 							if interval[0] + space_time < current_time < interval[1] - space_time:
 								suc_state = ID2
-								sucs.append((suc_state, current_time, time_passed, interval))
+								if c2 != Category.park:
+									sucs.append((suc_state, current_time, time_passed, interval))
+								elif goal_test(suc_state, current_time):
+									sucs.append((suc_state, current_time, time_passed, interval))
 								#elif interval[1] < my_interval[1] and interval[0] < interval[1] - 2*space_time:
 							#if state overlaps
 							elif interval[0] < my_interval[1]:
@@ -307,7 +311,10 @@ class system:
 								if my_interval[0] < arrival_time < my_interval[1]:
 									#if we can arrive in time
 									if interval[0] <= arrival_time < interval[1] - space_time:
-										sucs.append((suc_state, arrival_time, arrival_time - time, interval))
+										if c2 != Category.park:
+											sucs.append((suc_state, arrival_time, arrival_time - time, interval))
+										elif goal_test(suc_state, arrival_time):
+											sucs.append((suc_state, arrival_time, arrival_time - time, interval))
 			#print(sucs)
 			return(sucs)
 			
@@ -316,7 +323,7 @@ class system:
 			if end_ID == state:
 				safe_intervals = si_dict[state]
 				for interval in safe_intervals:
-					if interval[0] + space_time< t < interval[1] - (space_time + planning_time):
+					if interval[0] + space_time< t < interval[1] - (space_time + planning_time + extra_time):
 						return  True
 			return(False)
 
@@ -414,7 +421,7 @@ class system:
 							high_split = t + space_time
 							if last:
 								#print('last')
-								high_split = t #+ (planning_time - .1 - space_time*2)
+								high_split = t + (planning_time + extra_time - .02)
 							else:
 								high_split = max(next_t, t + space_time)
 							if first:
