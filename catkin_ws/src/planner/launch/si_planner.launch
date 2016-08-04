@@ -10,7 +10,7 @@
   <remap from="easy_sg/StartingID_topic" to="setup/StartingID_topic" />
   <remap from="si_planner/Starter" to="setup/Starter" />
 
-  <node name="si_planner" pkg="planner" type="si_planner.py" output="screen">
+  <node name="si_planner" pkg="planner" type="si_planner.py">
   	<param name="cf_num" value="$(arg cf_num)"/>
   	<param name="z_coefficient" value="$(arg z_coefficient)" />
   	<param name="continuous" value="$(arg continuous)" />

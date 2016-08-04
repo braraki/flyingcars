@@ -364,15 +364,11 @@ class building_scape:
 		int_marker.name = "my_marker"
 
 		for n in self.node_scape.node_list:
-			int_marker = n.construct(int_marker)
-			'''
-			if n.category != Category.mark:
-				if air_node_display:
-					int_marker = n.construct(int_marker)
-				elif n.category != Category.cloud and n.category != Category.interface:
-					int_marker = n.construct(int_marker)
-			# 'commit' changes and send to all clients
-			'''
+			if air_node_display:
+				int_marker = n.construct(int_marker)
+			elif n.category != Category.cloud and n.category != Category.interface:
+				int_marker = n.construct(int_marker)
+
 
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
