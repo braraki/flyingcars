@@ -35,7 +35,7 @@ if optimal:
 	land_way_point_d = land_vel*(time_step)
 else:
 	#air_way_point_d should be slightly under buffer distance
-	air_way_point_d = .25#ideal_way_point_d
+	air_way_point_d = .5#ideal_way_point_d
 	land_way_point_d = ideal_way_point_d
 
 
@@ -57,7 +57,7 @@ def get_num_waypoints2(ID1, ID2, info_dict):
 	for value in range(low - 1, hi + 2):
 		if value >= 0:
 			d = dist/float(value + 1)
-			diff = abs(waypoint_d - dist)
+			diff = abs(waypoint_d - d)
 			if min_diff == None:
 				min_diff = diff
 				chosen = value
@@ -100,7 +100,7 @@ def get_new_info(info_dict, adjacency_array):
 				if c2 != Category.land and c2 != Category.park:
 					pass_2 = True
 				'''
-				if not optimal and (pass_1 or pass_2):
+				if not optimal and (pass_1 and pass_2):
 					e_list.append((ID1, ID2))
 				'''
 				if pass_1 and pass_2 and z1 == z2:

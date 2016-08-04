@@ -16,8 +16,8 @@
     <arg name="map" value="$(arg map)" />
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
-    <arg name="time_step" default=".5" />
-    <arg name="optimal" default="False" />
+    <arg name="time_step" default="$(arg time_step)" />
+    <arg name="optimal" default="$(arg optimal)" />
   </include>
 
   <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(find map_maker) $(arg cf_num) $(arg map) $(arg buildings)"/>
