@@ -59,7 +59,6 @@ catkin_python_setup()
    FILES
    AddTwoInts.srv
    MapTalk.srv
-   NM_MapTalk.srv
  )
 
 ## Generate actions in the 'action' folder

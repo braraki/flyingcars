@@ -9,23 +9,26 @@ import networkx as nx
 from enum import Enum
 import numpy as np
 
-
+mark_x = []
+mark_y = []
 
 class Category(Enum):
-	mark = 0
-	land = 1
-	park = 2
-	interface = 3
-	cloud = 4
-	waypoint = 5
-	air_waypoint = 6
+	land = 0
+	park = 1
+	interface = 2
+	cloud = 3
+	waypoint = 4
+	air_waypoint = 5
 
-static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint, 6: Category.air_waypoint}
+static_category_dict = {0: Category.land, 1: Category.park, 2: Category.interface, 3: Category.cloud, 4: Category.waypoint, 5: Category.air_waypoint}
 
-
+def get_marks():
+	return((mark_x, mark_y))
 
 #map_topic should be 'send_map' or 'send_complex_map'
 def map_maker_client(map_topic='send_complex_map'):
+	global mark_x
+	global mark_y
 	rospy.wait_for_service(map_topic)
 	try:
 		print('calling')
@@ -38,6 +41,8 @@ def map_maker_client(map_topic='send_complex_map'):
 		z_list = resp.z_list
 		num_IDs = resp.num_IDs
 		adjacency_array = resp.adjacency_array
+		mark_x = resp.mark_x
+		mark_y = resp.mark_y
 		A = np.array(adjacency_array)
 		A.shape = (num_IDs, num_IDs)
 		info_dict = {}

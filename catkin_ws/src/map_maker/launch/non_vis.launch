@@ -5,7 +5,7 @@
   <arg name="air_vel" default=".5" />
   <arg name="land_vel" default=".25" />
   <arg name="time_step" default=".5" />
-  <arg name="optimal" default="True" />
+  <arg name="optimal" default="False" />
 
   <node name="mapmaker" pkg="map_maker" type="mapmaker.py">
     <param name="map_road_ratio" value=".5"/>

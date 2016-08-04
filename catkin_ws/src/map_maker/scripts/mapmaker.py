@@ -60,17 +60,6 @@ drone_air_speed = 1
 #used to get edge ID, do not change
 edge_num = 0
 
-
-'''
-class Category(Enum):
-	mark = 0
-	land = 1
-	park = 2
-	interface = 3
-	cloud = 4
-	waypoint = 5
-'''
-
 Category = gen_adj_array_info_dict.Category
 
 class return_node:
@@ -142,8 +131,8 @@ class tile:
 		self.node_list = node_list[:]
 
 	def is_contained(self, new_x, new_y):
-		if self.x <= new_x <= self.x+self.length:
-			if self.y <= new_y <= self.y+self.width:
+		if self.x - .5*self.length <= new_x <= self.x +.5*self.length:
+			if self.y -.5*self.width <= new_y <= self.y +.5*self.width:
 				#print("TRUEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE")
 				return(True)
 		return(False)
@@ -369,12 +358,10 @@ class tile:
 				elif (angle - n.angle)%360 == 45:
 					n.add_successor(n1)
 
-
-	#add mark nodes
-	def add_mark_nodes(self):
-		n = node(self.x - self.length*.5, self.y - self.width*.5, self.elevation)
-		n.add_category(Category.mark)
-		self.node_list.append(n)
+	def get_mark_pos(self):
+		mx = self.x - self.length*.5
+		my = self.y - self.width*.5
+		return((mx, my))
 
 	#finds a node that matches certain constraints, which side of the tile it should be on
 	#and which axis of alignment is most important (necessary to do corners and deadends
@@ -455,7 +442,7 @@ class landscape:
 					t.create_nodes()
 					t.connect_own()
 					t.add_and_connect_parking()
-					t.add_mark_nodes()
+					#t.add_mark_nodes()
 		self.interface = interface
 		self.cloud = cloud
 
@@ -601,6 +588,15 @@ class landscape:
 				edge_list += info[1]
 		return((return_node_list, edge_list))
 
+	def get_mark_list(self):
+		mark_x = []
+		mark_y = []
+		for t in self.tile_dict.values():
+			(mx, my) = t.get_mark_pos()
+			mark_x.append(mx)
+			mark_y.append(my)
+		return((mark_x, mark_y))
+
 	#builds interface and cloud
 	def generate_interface_and_cloud(self, interface_height, cloud_height, num_cloud_layers, cloud_layer_dist, cloud_density):
 		if not optimal:
@@ -660,10 +656,9 @@ class interface:
 				ns = self.node_dict[t]
 				for n1 in ns:
 					for n2 in t.node_list:
-						if n2.category != Category.mark:
-							if n1.x == n2.x and n1.y == n2.y:
-								n1.add_successor(n2)
-								n2.add_successor(n1)
+						if n1.x == n2.x and n1.y == n2.y:
+							n1.add_successor(n2)
+							n2.add_successor(n1)
 
 #hovering multilayer, multinode per tile node-cloud(density represents how many nodes across a cell)
 class cloud:
@@ -844,15 +839,6 @@ class cloud:
 						n1.add_successor(chosen)
 						chosen.add_successor(n1)
 
-				'''
-				for n1 in ns:
-					for n2 in t.node_list:
-						if n2.category != Category.mark:
-							if n1.x == n2.x and n1.y == n2.y:
-								n1.add_successor(n2)
-								n2.add_successor(n1)
-				'''
-
 
 '''
 #step by step building of a map (probably not going to be used to much)
@@ -1027,18 +1013,14 @@ final_map.generate_interface_and_cloud(map_interface_height, map_cloud_height, m
 info = final_map.get_nodes_and_edges()
 return_nodes = info[0]
 edges = info[1]
+(mark_x, mark_y) = final_map.get_mark_list()
 
 #building csv files, no longer necessary, but I like it
 ID_dict = {}
 category_dict = {}
 
-non_mark_ID_dict = {}
-non_mark_category_dict = {}
-non_mark_ID = 0
-new_to_old = []
-
 num_parking = 0
-num_mark = 0
+#num_mark = 0
 num_land = 0
 num_interface = 0
 num_cloud = 0
@@ -1050,16 +1032,9 @@ for n in return_nodes:
 	ID_dict[ID] = (x,y,z)
 	category_dict[ID] = n.category
 	#node_writer.writerow([str(ID), str(x), str(y), str(z)])
-	if n.category != Category.mark:
-		non_mark_ID_dict[non_mark_ID] = (x, y, z)
-		non_mark_category_dict[non_mark_ID] = n.category
-		new_to_old.append(ID)
-		non_mark_ID += 1
 	'''
 	if n.category == Category.park:
 		num_parking += 1
-	elif n.category == Category.mark:
-		num_mark += 1
 	elif n.category == Category.land:
 		num_land += 1
 	elif n.category == Category.interface:
@@ -1090,26 +1065,6 @@ for fl in A4:
 	A5.append(int(fl))
 #print(A5)
 
-nm_G = nx.DiGraph()
-for ID in non_mark_ID_dict:
-	nm_G.add_node(ID)
-for e in edges:
-	ID1 = e.node1_ID
-	ID2 = e.node2_ID
-	if ID1 in new_to_old and ID2 in new_to_old:
-		nm_ID1 = new_to_old.index(ID1)
-		nm_ID2 = new_to_old.index(ID2)
-		nm_G.add_edge(nm_ID1, nm_ID2)
-#A = nx.adjacency_matrix(G)
-nm_A = nx.to_numpy_matrix(nm_G)
-nm_A2 = nm_A.flatten()
-nm_A3 = nm_A2.tolist()
-nm_A4 = nm_A3[0]
-nm_A5 = []
-for fl in nm_A4:
-	nm_A5.append(int(fl))
-
-
 coordinate_list = [None]*len(ID_dict)
 x_list = [None]*len(ID_dict)
 y_list = [None]*len(ID_dict)
@@ -1127,35 +1082,12 @@ num_nodes = len(ID_dict)
 
 
 
-
-nm_coordinate_list = [None]*len(non_mark_ID_dict)
-nm_x_list = [None]*len(non_mark_ID_dict)
-nm_y_list = [None]*len(non_mark_ID_dict)
-nm_z_list = [None]*len(non_mark_ID_dict)
-nm_category_list = [None]*len(non_mark_ID_dict)
-for ID in non_mark_ID_dict:
-	coor = non_mark_ID_dict[ID]
-	nm_coordinate_list[ID] = coor
-	nm_x_list[ID] = coor[0]
-	nm_y_list[ID] = coor[1]
-	nm_z_list[ID] = coor[2]
-	cat = non_mark_category_dict[ID]
-	nm_category_list[ID] = int(cat)
-nm_num_nodes = len(ID_dict)
-
-
-
-
 def response(req):
-	return MapTalkResponse(category_list, x_list, y_list, z_list, num_nodes, A5)
-
-def nm_response(req):
-	return NM_MapTalkResponse(nm_category_list, nm_x_list, nm_y_list, nm_z_list, nm_num_nodes, nm_A5, new_to_old)
+	return MapTalkResponse(category_list, x_list, y_list, z_list, num_nodes, A5, mark_x, mark_y)
 
 def info_sender():
 	rospy.init_node('map_maker_server')
 	s = rospy.Service('send_map', MapTalk,response)
-	s = rospy.Service('NM_send_map', NM_MapTalk, nm_response)
 	print('ready to send info back')
 	rospy.spin()
 

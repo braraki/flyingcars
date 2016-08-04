@@ -394,7 +394,9 @@ def get_new_info(info_dict, adjacency_array):
 
 #sends info out
 class sender:
-	def __init__(self, info_dict, adjacency_matrix):
+	def __init__(self, info_dict, adjacency_matrix, mark_x, mark_y):
+		self.mark_x = mark_x
+		self.mark_y = mark_y
 		A2 = adjacency_matrix.flatten()
 		A3 = A2.tolist()
 		A4 = A3[0]
@@ -420,7 +422,7 @@ class sender:
 		self.num_nodes = len(info_dict)
 
 	def response(self, req):
-		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5)
+		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5, self.mark_x, self.mark_y)
 
 	def info_sender(self):
 		s = rospy.Service('send_complex_map', MapTalk ,self.response)
@@ -461,11 +463,12 @@ if __name__ == "__main__":
 	print('test')
 	rospy.init_node('complex_map_maker_server')
 	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+	(mark_x, mark_y) = gen_adj_array_info_dict.get_marks()
 	Category = gen_adj_array_info_dict.Category
 	#print(info_dict)
 	#if optimal:
 		#(info_dict, A) = remake_cloud(info_dict, A)
 	analysis = get_new_info(info_dict, A)
-	s = sender(analysis[0], analysis[1])
+	s = sender(analysis[0], analysis[1], mark_x, mark_y)
 	#s = sender(info_dict, A)
 	s.info_sender()

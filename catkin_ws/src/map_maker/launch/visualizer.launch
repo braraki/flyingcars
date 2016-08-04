@@ -6,7 +6,7 @@
   <arg name="air_vel" default=".5" />
   <arg name="land_vel" default=".25" />
   <arg name="time_step" default=".5" />
-  <arg name="optimal" default="True" />
+  <arg name="optimal" default="False" />
 
 
   <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
@@ -17,7 +17,7 @@
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
     <arg name="time_step" default=".5" />
-    <arg name="optimal" default="True" />
+    <arg name="optimal" default="False" />
   </include>
 
   <node name="foo" pkg="map_maker" type="make_rviz.sh" args="$(find map_maker) $(arg cf_num) $(arg map) $(arg buildings)"/>
