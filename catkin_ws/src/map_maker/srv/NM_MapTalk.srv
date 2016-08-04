@@ -1,0 +1,16 @@
+---
+#map information
+#all of this is new information with mark nodes removed
+#for category_list, x_list, y_list, and z_list, the given index represents the 
+#information for the node with that ID, works similarly for the adjacency array
+#though that has been flattened
+#the num IDs represents the number of nodes and thus the number of node IDs
+
+#new to old represents the old node ID in the index of the new node ID
+int32[] category_list
+float32[] x_list
+float32[] y_list
+float32[] z_list
+int16 num_IDs
+int16[] adjacency_array
+int16[] new_to_old

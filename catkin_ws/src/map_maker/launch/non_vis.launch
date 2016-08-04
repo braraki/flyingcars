@@ -12,7 +12,7 @@
     <param name="map_tile_size" value=".5"/>
     <param name="map_interface_height" value=".75"/>
     <param name="map_cloud_height" value="1.25"/>
-    <param name="map_num_cloud_layers" value="1"/>
+    <param name="map_num_cloud_layers" value="2"/>
     <param name="map_cloud_layer_dist" value="2"/>
     <param name="map_cloud_density" value="2"/>
     <param name="helipad_height" value=".25"/>
@@ -25,8 +25,8 @@
     <param name="ideal_way_point_d" value=".15"/>
     <param name="land_vel" value="$(arg land_vel)" />
     <param name="air_vel" value="$(arg air_vel)" />
-    <param name="time_step" value=".1" />
-    <param name="optimal" value="False" />
+    <param name="time_step" value="$(arg time_step)" />
+    <param name="optimal" value="$(arg optimal)" />
   </node>
 
 </launch>

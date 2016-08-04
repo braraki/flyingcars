@@ -708,6 +708,7 @@ class cloud:
 	def opt_generate_nodes(self):
 		#getting air_cloud_dimensions
 		air_way_point_d = air_vel*(time_step)
+		self.layer_dist = 2*air_way_point_d
 		grid_dist = (2.0/float(1 + (2.0)**.5))*air_way_point_d
 
 		tile_length = self.landscape.tile_dict.values()[0].length
@@ -1031,6 +1032,11 @@ edges = info[1]
 ID_dict = {}
 category_dict = {}
 
+non_mark_ID_dict = {}
+non_mark_category_dict = {}
+non_mark_ID = 0
+new_to_old = []
+
 num_parking = 0
 num_mark = 0
 num_land = 0
@@ -1044,6 +1050,12 @@ for n in return_nodes:
 	ID_dict[ID] = (x,y,z)
 	category_dict[ID] = n.category
 	#node_writer.writerow([str(ID), str(x), str(y), str(z)])
+	if n.category != Category.mark:
+		non_mark_ID_dict[non_mark_ID] = (x, y, z)
+		non_mark_category_dict[non_mark_ID] = n.category
+		new_to_old.append(ID)
+		non_mark_ID += 1
+	'''
 	if n.category == Category.park:
 		num_parking += 1
 	elif n.category == Category.mark:
@@ -1054,13 +1066,14 @@ for n in return_nodes:
 		num_interface += 1
 	elif n.category == Category.cloud:
 		num_cloud += 1
-
+	'''
+'''
 print('num parking: '+str(num_parking))
 print('num mark: '+str(num_mark))
 print('num land: '+str(num_land))
 print('num interface: '+str(num_interface))
 print('num cloud: '+str(num_cloud))
-
+'''
 #networkx
 G = nx.DiGraph()
 for n in return_nodes:
@@ -1077,12 +1090,31 @@ for fl in A4:
 	A5.append(int(fl))
 #print(A5)
 
+nm_G = nx.DiGraph()
+for ID in non_mark_ID_dict:
+	nm_G.add_node(ID)
+for e in edges:
+	ID1 = e.node1_ID
+	ID2 = e.node2_ID
+	if ID1 in new_to_old and ID2 in new_to_old:
+		nm_ID1 = new_to_old.index(ID1)
+		nm_ID2 = new_to_old.index(ID2)
+		nm_G.add_edge(nm_ID1, nm_ID2)
+#A = nx.adjacency_matrix(G)
+nm_A = nx.to_numpy_matrix(nm_G)
+nm_A2 = nm_A.flatten()
+nm_A3 = nm_A2.tolist()
+nm_A4 = nm_A3[0]
+nm_A5 = []
+for fl in nm_A4:
+	nm_A5.append(int(fl))
+
+
 coordinate_list = [None]*len(ID_dict)
 x_list = [None]*len(ID_dict)
 y_list = [None]*len(ID_dict)
 z_list = [None]*len(ID_dict)
 category_list = [None]*len(ID_dict)
-test_list = [1]*len(ID_dict)
 for ID in ID_dict:
 	coor = ID_dict[ID]
 	coordinate_list[ID] = coor
@@ -1091,20 +1123,39 @@ for ID in ID_dict:
 	z_list[ID] = coor[2]
 	cat = category_dict[ID]
 	category_list[ID] = int(cat)
-
 num_nodes = len(ID_dict)
 
-print(len(category_list))
 
-#print(coordinate_list)
+
+
+nm_coordinate_list = [None]*len(non_mark_ID_dict)
+nm_x_list = [None]*len(non_mark_ID_dict)
+nm_y_list = [None]*len(non_mark_ID_dict)
+nm_z_list = [None]*len(non_mark_ID_dict)
+nm_category_list = [None]*len(non_mark_ID_dict)
+for ID in non_mark_ID_dict:
+	coor = non_mark_ID_dict[ID]
+	nm_coordinate_list[ID] = coor
+	nm_x_list[ID] = coor[0]
+	nm_y_list[ID] = coor[1]
+	nm_z_list[ID] = coor[2]
+	cat = non_mark_category_dict[ID]
+	nm_category_list[ID] = int(cat)
+nm_num_nodes = len(ID_dict)
+
+
 
 
 def response(req):
 	return MapTalkResponse(category_list, x_list, y_list, z_list, num_nodes, A5)
 
+def nm_response(req):
+	return NM_MapTalkResponse(nm_category_list, nm_x_list, nm_y_list, nm_z_list, nm_num_nodes, nm_A5, new_to_old)
+
 def info_sender():
 	rospy.init_node('map_maker_server')
 	s = rospy.Service('send_map', MapTalk,response)
+	s = rospy.Service('NM_send_map', NM_MapTalk, nm_response)
 	print('ready to send info back')
 	rospy.spin()
 
