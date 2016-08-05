@@ -106,7 +106,9 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 
 def dijkstra(successors, goal_state):
 	distances = {}
+	steps = {}
 	distances[goal_state] = 0
+	steps[goal_state] = 0
 	agenda = PriorityQueue()
 	agenda.push(goal_state, 0)
 	
@@ -114,15 +116,17 @@ def dijkstra(successors, goal_state):
 		parent = agenda.pop()
 		for child, cost in successors(parent):
 			alt_cost = distances[parent] + cost
+			alt_step = steps[parent] + 1
 			if child not in distances:
 				distances[child] = alt_cost
 				agenda.push(child, alt_cost)
+				steps[child] = alt_step
 			elif alt_cost < distances[child]:
 				distances[child] = alt_cost
 				agenda.decrease_priority(child,alt_cost)
+				steps[child] = alt_step
 				
-	print goal_state, distances
-	return distances
+	return distances, steps
 
 def true_distances(info_dict, adj_array, goal):
 	predecessor_matrix = adj_array.transpose()
@@ -146,10 +150,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 
 	true_dists = []
 	for i in range(len(startend)):
-		true_dists.append(true_distances(old_graph,oa,startend[i][1]))
-
-	print "TRUE DISTWSSS"
-	print true_dists
+		true_dists.append(true_distances(old_graph,oa,startend[i][1])[0])
 
 	# new adj array
 	# the format is this: each node ID is represented by
@@ -186,8 +187,6 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 			for cf in range(cf_num):
 				cost_of_waiting = 0.1
 				costs[(cf,current_state,next_state)] = cost_of_waiting
-				print "KLJDSF"
-				print cf, ID
 				dists[(cf,current_state,next_state)] = true_dists[cf][ID]
 
 			# need to find successors of ID (sID) and connect
@@ -374,24 +373,29 @@ class full_system:
 
 		nontime_IDs = self.num_IDs
 
-		time_horizon = 10
 		model_type = 'total_distance'
 		startend = tuplelist()
+		true_dists = []
+		min_time_horizon = 10
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
 			#self.system_list.append(sys)
 			(ID1, ID2) = self.request_situation(cf_ID)
 			startend.append((ID1,ID2))
+			true_dists.append(true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])[1])
+			if true_dists[cf_ID][ID1] > min_time_horizon:
+				min_time_horizon = true_dists[cf_ID][ID1]
+			print "min horizon %d for cf %d" % (min_time_horizon, cf_ID)
 
-		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,time_horizon)
+		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,min_time_horizon)
 
-		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
+		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(min_time_horizon+1),model_type)
 
 		m.optimize()
 
-		original_th = time_horizon
+		time_horizon = min_time_horizon
 
-		while m.status != GRB.Status.OPTIMAL and time_horizon < original_th*cf_num:
+		while m.status != GRB.Status.OPTIMAL and time_horizon < 2*min_time_horizon*cf_num:
 			time_horizon = time_horizon + 1
 			na, costs, arcs, dists = convert_graph(self.info_dict,A, startend,time_horizon)
 			m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
@@ -425,9 +429,7 @@ class full_system:
 			#print path
 			first_timestep = 0
 			ordered_path = self.order_path(path,first_node)
-			print ordered_path
 			time_adjusted_path = self.time_adjust(ordered_path)
-			print time_adjusted_path
 			paths[cf] = time_adjusted_path
 			current_time = time.time()
 			times[cf] = [1*x for x in range(0,len(paths[cf]))]
