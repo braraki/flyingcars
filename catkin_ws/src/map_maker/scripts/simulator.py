@@ -218,8 +218,8 @@ class full_system:
 				'''if you switch the comments for the loc line, you should be able to go
 				between the computers actual time (big numbers) and the simulated time'''
 
-				#loc = sys.get_position(current_time)
-				loc = sys.get_position(round(actual_time, 2))
+				loc = sys.get_position(current_time)
+				#loc = sys.get_position(round(actual_time, 2))
 
 
 
@@ -227,6 +227,7 @@ class full_system:
 			if not rospy.is_shutdown():
 				test_distance(self.x_list, self.y_list, self.z_list)
 				self.pub.publish(self.x_list, self.y_list, self.z_list)
+				#print(self.x_list)
 				#print(current_time)
 				#print('published: ' + str((self.x_list[0], self.y_list[0], self.z_list[0])))
 				rate.sleep()
