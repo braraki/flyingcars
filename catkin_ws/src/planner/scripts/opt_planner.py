@@ -119,17 +119,13 @@ def dijkstra(successors, goal_state):
 			alt_cost = distances[parent] + cost
 			alt_step = steps[parent] + 1
 			if child not in distances:
-				print child, alt_step
 				distances[child] = alt_cost
 				agenda.push(child, alt_cost)
 				steps[child] = alt_step
 			elif alt_cost < distances[child]:
-				print child, alt_step
 				distances[child] = alt_cost
 				agenda.decrease_priority(child,alt_cost)
 				steps[child] = alt_step
-		if children == None:
-			print "%d HAD NO CHILDREN" % (parent)
 	return distances, steps
 
 def true_distances(info_dict, adj_array, goal):
@@ -138,13 +134,11 @@ def true_distances(info_dict, adj_array, goal):
 		(x1, y1, z1) = info_dict[ID1][0]
 		sucs = []
 		row = predecessor_matrix[ID1]
-		print row
 		for (ID2, value) in enumerate(row):
 			if value == 1:
 				(fx, fy, fz) = info_dict[ID2][0]
 				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
 				sucs.append((ID2, dist_traveled))
-		print "%s succeed %s" % (sucs, ID1)
 		return sucs
 	return dijkstra(successors, goal)
 
@@ -199,7 +193,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 			# ID+timestep*num_IDs to sID+(timestep+1)*num_IDs
 			old_row = oa[ID]
 			for (ID2, value) in enumerate(old_row):
-				if value == 1:
+				if value == 1 and ID2 != ID:
 					# ID2 is a successor
 					next_neighbor = ID2+(timestep+1)*num_IDs
 					na[(current_state, next_neighbor)] = 1
@@ -215,7 +209,6 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 						costs[(cf,current_state, next_neighbor)] = cost_of_travel
 						dists[(cf,current_state, next_neighbor)] = true_dists[cf][ID2]
 	
-
 	print num_IDs
 	print len(arcs)
 	#print arcs
@@ -382,7 +375,7 @@ class full_system:
 		model_type = 'total_distance'
 		startend = tuplelist()
 		true_dists = []
-		min_time_horizon = 10
+		min_time_horizon = 0
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
 			#self.system_list.append(sys)
@@ -390,7 +383,7 @@ class full_system:
 			startend.append((ID1,ID2))
 			true_dist_list = true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])
 			print startend[cf_ID]
-			print true_dist_list
+			#print true_dist_list
 			true_dists.append(true_dist_list[1])
 			if true_dists[cf_ID][ID1] > min_time_horizon:
 				min_time_horizon = true_dists[cf_ID][ID1]
@@ -422,9 +415,14 @@ class full_system:
 
 			paths,times = self.extract_paths(solution, arcs)
 			for cf in range(cf_num):
+				print "PUBLISHING PATH"
 				print cf, paths[cf]
 				#print times[cf]
 				self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+			while True:
+				for cf in range(cf_num):
+					self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+				time.sleep(0.1)
 
 	def extract_paths(self,solution,arcs):
 		paths = {}
@@ -441,7 +439,7 @@ class full_system:
 			time_adjusted_path = self.time_adjust(ordered_path)
 			paths[cf] = time_adjusted_path
 			current_time = time.time()
-			times[cf] = [1*x for x in range(0,len(paths[cf]))]
+			times[cf] = [0.5*x for x in range(0,len(paths[cf]))]
 		return paths,times
 
 	def order_path(self,path,node):

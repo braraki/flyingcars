@@ -837,7 +837,7 @@ if __name__ == "__main__":
 	rospy.init_node("simple_marker")
 	if waypoint_node_display:
 		info_dict = gen_adj_array_info_dict.map_maker_client('send_complex_map')[0]
-		A = gen_adj_array_info_dict.map_maker_client('send_complex_map')[1]
+		A = gen_adj_array_info_dict.map_maker_client('send_map')[1]
 	else:
 		(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
 	(mark_x, mark_y) = gen_adj_array_info_dict.get_marks()
