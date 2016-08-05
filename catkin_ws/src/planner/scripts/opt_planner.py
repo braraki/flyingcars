@@ -114,18 +114,22 @@ def dijkstra(successors, goal_state):
 	
 	while not agenda.is_empty():
 		parent = agenda.pop()
-		for child, cost in successors(parent):
+		children = successors(parent)
+		for child, cost in children:
 			alt_cost = distances[parent] + cost
 			alt_step = steps[parent] + 1
 			if child not in distances:
+				print child, alt_step
 				distances[child] = alt_cost
 				agenda.push(child, alt_cost)
 				steps[child] = alt_step
 			elif alt_cost < distances[child]:
+				print child, alt_step
 				distances[child] = alt_cost
 				agenda.decrease_priority(child,alt_cost)
 				steps[child] = alt_step
-				
+		if children == None:
+			print "%d HAD NO CHILDREN" % (parent)
 	return distances, steps
 
 def true_distances(info_dict, adj_array, goal):
@@ -134,11 +138,13 @@ def true_distances(info_dict, adj_array, goal):
 		(x1, y1, z1) = info_dict[ID1][0]
 		sucs = []
 		row = predecessor_matrix[ID1]
+		print row
 		for (ID2, value) in enumerate(row):
 			if value == 1:
 				(fx, fy, fz) = info_dict[ID2][0]
 				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
 				sucs.append((ID2, dist_traveled))
+		print "%s succeed %s" % (sucs, ID1)
 		return sucs
 	return dijkstra(successors, goal)
 
@@ -382,7 +388,10 @@ class full_system:
 			#self.system_list.append(sys)
 			(ID1, ID2) = self.request_situation(cf_ID)
 			startend.append((ID1,ID2))
-			true_dists.append(true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])[1])
+			true_dist_list = true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])
+			print startend[cf_ID]
+			print true_dist_list
+			true_dists.append(true_dist_list[1])
 			if true_dists[cf_ID][ID1] > min_time_horizon:
 				min_time_horizon = true_dists[cf_ID][ID1]
 			print "min horizon %d for cf %d" % (min_time_horizon, cf_ID)
