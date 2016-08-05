@@ -125,7 +125,7 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				#doc.add_paragraph(str(planning_end_time - planning_start_time))
 				#doc.add_paragraph(str(parent.path()))
 				#doc.add_paragraph(' ')
-				return parent.path()
+				return (parent.path(), planning_end_time - planning_start_time)
 			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
 				ID = child_state
 				child = SearchNode(child_state, parent, t, parent.cost+cost, interval)
@@ -172,6 +172,7 @@ class system:
 				self.park_IDs.append(id)
 		self.p = None
 		self.times = []
+		self.planning_time = None
 
 	def generate_random_path(self):
 		'''
@@ -199,7 +200,7 @@ class system:
 		'''
 		(ID1, ID2) = self.request_situation()
 		self.end_pos = self.info_dict[ID2][0]
-		p = self.find_path(ID1, ID2)
+		(p, self.planning_time) = self.find_path(ID1, ID2)
 		p2 = self.edit_path(p)
 		return(p2)
 		
@@ -388,12 +389,12 @@ class system:
 			#print(self.p)
 			#print(self.times)
 			if self.p != None and self.p != []:
-				self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
+				self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times, self.planning_time)
 				#print('published')
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
-			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times, self.planning_time)
 
 	def update_si_dict(self):
 		#print('update si dict')

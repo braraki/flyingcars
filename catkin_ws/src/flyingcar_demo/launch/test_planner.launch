@@ -13,6 +13,7 @@
   <remap from="simple_marker/time_path_topic" to="$(arg planner)/time_path_topic" />
   <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />
   <remap from="$(arg planner)/SimPos_topic" to="simulator/SimPos_topic" />
+  <remap from="recorder/time_path_topic" to="$(arg planner)/time_path_topic" />
 
   <remap from="simple_marker/Start_SimPos_topic" to="setup/Start_SimPos_topic" />
 
@@ -22,7 +23,7 @@
     <arg name="buildings" value="$(arg buildings)" />
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
-    <arg name="optimal" default="False" />
+    <arg name="optimal" default="True" />
   </include>
 
   <include file="$(find planner)/launch/$(arg planner).launch">
@@ -32,6 +33,10 @@
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
   </include>
+  <!--
+  <node name="recorder" pkg="flyingcar_demo" type="recorder.py" output="screen" />
+  -->
+  <node name="record" pkg="rosbag" type="record" args="-O recorder_test.bag $(arg planner)/time_path_topic" />
 
 
 </launch>

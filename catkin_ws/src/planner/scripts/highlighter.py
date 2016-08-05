@@ -70,6 +70,7 @@ class PriorityQueue:
 		return len(self.data) == 0
  
 def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
+	start_time = time.time()
 	if goal_test(start_state):
 		return [start_state]
 	start_node = SearchNode(start_state, None, 0)
@@ -81,7 +82,8 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 		if parent.state not in expanded:
 			expanded.add(parent.state)
 			if goal_test(parent.state):
-				return parent.path()
+				total_time = time.time() - start_time
+				return (parent.path(), total_time)
 			for child_state, cost in successors(parent.state):
 				child = SearchNode(child_state, parent, parent.cost+cost)
 				if child_state in expanded:
@@ -106,6 +108,7 @@ class system:
 				self.park_IDs.append(id)
 		self.p = None
 		self.times = []
+		self.planning_time = None
 
 	def generate_random_path(self):
 		if self.end_pos == None:
@@ -121,7 +124,7 @@ class system:
 			if ID2 != ID1:
 				unfound = False
 		self.end_pos = self.info_dict[ID2][0]
-		p = self.find_path(ID1, ID2)
+		(p, self.planning_time) = self.find_path(ID1, ID2)
 		return(p)
 
 	def find_path(self, ID1, ID2):
@@ -173,13 +176,13 @@ class system:
 		print(self.times)
 		if self.p != None and self.p != []:
 			#self.pub.publish(cf_num, self.cf_ID, self.p)
-			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times, self.planning_time)
 			print('published')
 
 	def publish_old_path(self):
 		if self.p != None and self.p != []:
 			#self.pub.publish(cf_num, self.cf_ID, self.p)
-			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times)
+			self.pubTime.publish(cf_num, self.cf_ID, self.p, self.times, self.planning_time)
 
 
 	def make_times(self):
