@@ -127,6 +127,10 @@ def test_distance(x_list, y_list, z_list):
 				dist = ((x2 - x)**2 + (y2 -y)**2 + (z2 -z)**2)**.5
 				if dist < fly_buffer:
 					print('FLY TOO CLOSE: '+str(dist))
+					if z>.75 or z2>.75:
+						print('HEIGHT 1: '+str(z))
+						print('HEIGHT 2: '+str(z2))
+						print(" ")
 			flying.append((x, y, z))
 		else:
 			for (x2, y2, z2) in grounded:

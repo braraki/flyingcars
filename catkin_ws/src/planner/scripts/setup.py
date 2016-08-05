@@ -99,10 +99,12 @@ def setter():
 	#waits so that subscriber will recieve message
 	time.sleep(1)
 	go = 'N'
-	while go != 'Y':
+	while go != 'Y' and go != 'y':
 		if not rospy.is_shutdown():
 			PosPub.publish(x_list, y_list, z_list)
 			IDPub.publish(starting_IDs)
+		else:
+			break
 		go = raw_input('Are you ready to begin, if so type Y: ')	
 	StartPub.publish(True)
 

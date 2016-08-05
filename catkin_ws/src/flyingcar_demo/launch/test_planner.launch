@@ -22,7 +22,7 @@
     <arg name="buildings" value="$(arg buildings)" />
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
-    <arg name="optimal" default="True" />
+    <arg name="optimal" default="False" />
   </include>
 
   <include file="$(find planner)/launch/$(arg planner).launch">

@@ -21,6 +21,8 @@ import numpy as np
 
 import thread
 
+#import docx
+
 from map_maker import gen_adj_array_info_dict
 #arguments
 
@@ -59,6 +61,10 @@ space_time = .75
 planning_time = 2
 wait_time = .1
 extra_time = 0
+
+
+#doc = docx.Document()
+
 
 class SearchNode:
 	def __init__(self, state, parent, time, cost=0, interval=None):
@@ -113,6 +119,11 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				print('time to plan')
 				print(planning_end_time - planning_start_time)
 				print(parent.path())
+				#doc.add_paragraph('time to plan')
+				#doc.save('path_planning_results.docx')
+				#doc.add_paragraph(str(planning_end_time - planning_start_time))
+				#doc.add_paragraph(str(parent.path()))
+				#doc.add_paragraph(' ')
 				return parent.path()
 			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
 				ID = child_state
@@ -194,6 +205,7 @@ class system:
 	def request_situation(self):
 		global count
 		print(count)
+		#doc.add_paragraph(str(count))
 		count += 1
 		#print('situation asking')
 		rospy.wait_for_service('send_situation')
@@ -545,6 +557,8 @@ def fill_air_buffer_dict(info_dict):
 					c2 = info_dict[ID2][1]
 					if c2 == Category.cloud or c2 == Category.interface or c2 == Category.air_waypoint:
 						(x2, y2, z2) = info_dict[ID2][0]
+						z2 = 0
+						z1 = 0
 						dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
 						if dist <= air_buffer_dist:
 							buffered.append(ID2)
