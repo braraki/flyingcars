@@ -34,6 +34,7 @@ continuous = bool(rospy.get_param('/si_planner/continuous'))
 land_vel = float(rospy.get_param('/si_planner/land_vel'))
 air_vel = float(rospy.get_param('/si_planner/air_vel'))
 air_buffer_dist = float(rospy.get_param('/si_planner/air_buffer_dist'))
+buffer_z_frac = float(rospy.get_param('/si_planner/buffer_z_frac'))
 
 si_dict = {}
 
@@ -557,9 +558,7 @@ def fill_air_buffer_dict(info_dict):
 					c2 = info_dict[ID2][1]
 					if c2 == Category.cloud or c2 == Category.interface or c2 == Category.air_waypoint:
 						(x2, y2, z2) = info_dict[ID2][0]
-						z2 = 0
-						z1 = 0
-						dist = ((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)**.5
+						dist = ((x2 - x1)**2 + (y2 - y1)**2 + buffer_z_frac * (z2 - z1)**2)**.5
 						if dist <= air_buffer_dist:
 							buffered.append(ID2)
 			air_buffer_dict[ID] = buffered

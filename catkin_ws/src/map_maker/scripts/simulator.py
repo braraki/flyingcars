@@ -114,7 +114,7 @@ def analyse(p, times, info_dict):
 	return(spots)
 
 def test_distance(x_list, y_list, z_list):
-	fly_buffer = .5
+	fly_buffer = .4
 	ground_buffer = .05
 	grounded =  []
 	flying = []
