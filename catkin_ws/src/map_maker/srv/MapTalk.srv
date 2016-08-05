@@ -10,4 +10,5 @@ float32[] y_list
 float32[] z_list
 int16 num_IDs
 int16[] adjacency_array
-
+float32[] mark_x
+float32[] mark_y

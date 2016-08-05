@@ -113,6 +113,27 @@ def analyse(p, times, info_dict):
 	#print(sorted(spots.keys()))
 	return(spots)
 
+def test_distance(x_list, y_list, z_list):
+	fly_buffer = .5
+	ground_buffer = .05
+	grounded =  []
+	flying = []
+	for index in range(len(x_list)):
+		x = x_list[index]
+		y = y_list[index]
+		z = z_list[index]
+		if z > .01:
+			for (x2, y2, z2) in flying:
+				dist = ((x2 - x)**2 + (y2 -y)**2 + (z2 -z)**2)**.5
+				if dist < fly_buffer:
+					print('FLY TOO CLOSE: '+str(dist))
+			flying.append((x, y, z))
+		else:
+			for (x2, y2, z2) in grounded:
+				dist = ((x2 - x)**2 + (y2 -y)**2 + (z2 -z)**2)**.5
+				if dist < ground_buffer:
+					print('GROUND TOO CLOSE: '+str(dist))
+			grounded.append((x, y, z))
 
 #controls single crazyflie
 class system:
@@ -193,13 +214,14 @@ class full_system:
 				'''if you switch the comments for the loc line, you should be able to go
 				between the computers actual time (big numbers) and the simulated time'''
 
-				loc = sys.get_position(current_time)
-				#loc = sys.get_position(round(actual_time, 2))
+				#loc = sys.get_position(current_time)
+				loc = sys.get_position(round(actual_time, 2))
 
 
 
 				(self.x_list[index], self.y_list[index], self.z_list[index]) = loc
 			if not rospy.is_shutdown():
+				test_distance(self.x_list, self.y_list, self.z_list)
 				self.pub.publish(self.x_list, self.y_list, self.z_list)
 				#print(current_time)
 				#print('published: ' + str((self.x_list[0], self.y_list[0], self.z_list[0])))

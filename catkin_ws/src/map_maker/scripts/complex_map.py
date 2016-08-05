@@ -34,49 +34,10 @@ if optimal:
 	air_way_point_d = air_vel*(time_step)
 	land_way_point_d = land_vel*(time_step)
 else:
-	air_way_point_d = ideal_way_point_d
+	#air_way_point_d should be slightly under buffer distance
+	air_way_point_d = .5#ideal_way_point_d
 	land_way_point_d = ideal_way_point_d
 
-'''
-class Category(Enum):
-	mark = 0
-	land = 1
-	park = 2
-	interface = 3
-	cloud = 4
-	waypoint = 5
-
-static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
-'''
-
-#a_list represents the distance at which the number of waypoint nodes should change.
-#The values represent the max distance for the waypoint of that entries index
-'''
-a_list = []
-
-#expands the a_list
-def update_a_list(dist):
-	print('update')
-	global a_list
-	n = len(a_list) - 1
-	unfound = True
-	while unfound:
-		n += 1
-		denom = float(1/float(n+1)+1/float(n+2))
-		a_n = (2*ideal_way_point_d)/denom
-		a_list.append(a_n)
-		if a_n > dist:
-			unfound = False
-
-#finds the proper number of waypoints based on the distance
-def get_num_waypoints(dist):
-	#print('get num')
-	for i in range(len(a_list)):
-		if a_list[i] >= dist:
-			return(i)
-	update_a_list(dist)
-	return(get_num_waypoints(dist))
-'''
 
 def get_num_waypoints2(ID1, ID2, info_dict):
 	(x1, y1, z1) = info_dict[ID1][0]
@@ -84,19 +45,35 @@ def get_num_waypoints2(ID1, ID2, info_dict):
 	(x2, y2, z2) = info_dict[ID2][0]
 	c2 = info_dict[ID2][1]
 	dist = ((x1 - x2)**2 + (y1 - y2)**2 + (z1 - z2)**2)**.5
-	if c1 != Category.cloud and c2 == Category.cloud and c1 != Category.interface and c2 == Category.interface:
+	if c1 != Category.cloud and c2 != Category.cloud and c1 != Category.interface and c2 != Category.interface:
 		waypoint_d = land_way_point_d
 	else:
 		waypoint_d = air_way_point_d
 	raw_num = dist/float(waypoint_d)
-	low = math.floor(raw_num)
-	hi = math.ceil(raw_num)
+	low = int(math.floor(raw_num))
+	hi = int(math.ceil(raw_num))
+	min_diff = None
+	chosen = None
+	for value in range(low - 1, hi + 2):
+		if value >= 0:
+			d = dist/float(value + 1)
+			diff = abs(waypoint_d - d)
+			if min_diff == None:
+				min_diff = diff
+				chosen = value
+			elif diff < min_diff:
+				min_diff = diff
+				chosen = value
+	return(chosen)
+
+	'''
 	low_d = dist/float(low+1)
 	hi_d = dist/float(hi+1)
 	if abs(hi_d - waypoint_d) < abs(waypoint_d - low_d):
 		return(int(hi))
 	else:
 		return(int(low))
+	'''
 
 #returns info_dict and adjacency_array with waypoints added
 def get_new_info(info_dict, adjacency_array):
@@ -111,6 +88,7 @@ def get_new_info(info_dict, adjacency_array):
 		G.add_node(ID1)
 		info1 = info_dict[ID1]
 		c1 = info1[1]
+		(x1, y1, z1) = info1[0]
 		if c1 != Category.land and c1 != Category.park:
 			pass_1 = True
 		for (ID2, value) in enumerate(row):
@@ -118,9 +96,14 @@ def get_new_info(info_dict, adjacency_array):
 				pass_2 = False
 				info2 = info_dict[ID2]
 				c2 = info2[1]
+				(x2, y2, z2) = info2[0]
 				if c2 != Category.land and c2 != Category.park:
 					pass_2 = True
-				if (pass_1 or pass_2) and not optimal:
+				'''
+				if not optimal and (pass_1 and pass_2):
+					e_list.append((ID1, ID2))
+				'''
+				if pass_1 and pass_2 and z1 == z2:
 					e_list.append((ID1, ID2))
 				else:
 					#print('in')
@@ -130,13 +113,17 @@ def get_new_info(info_dict, adjacency_array):
 					#nw = get_num_waypoints(dist)
 					nw = get_num_waypoints2(ID1, ID2, info_dict)
 					last_ID = ID1
+					if pass_1 or pass_2:
+						wp_c = Category.air_waypoint
+					else:
+						wp_c = Category.waypoint
 					for wp_num in range(nw):
 						wp_x = x1 + ((wp_num + 1)/float(nw + 1))*(x2 - x1)
 						wp_y = y1 + ((wp_num + 1)/float(nw + 1))*(y2 - y1)
 						wp_z = z1 + ((wp_num + 1)/float(nw + 1))*(z2 - z1)
 						wp_ID = ID_num
 						ID_num += 1
-						new_info_dict[wp_ID] = ((wp_x, wp_y, wp_z), Category.waypoint)
+						new_info_dict[wp_ID] = ((wp_x, wp_y, wp_z), wp_c)
 						e_list.append((last_ID, wp_ID))
 						last_ID = wp_ID
 						#print('made way point')
@@ -150,7 +137,9 @@ def get_new_info(info_dict, adjacency_array):
 
 #sends info out
 class sender:
-	def __init__(self, info_dict, adjacency_matrix):
+	def __init__(self, info_dict, adjacency_matrix, mark_x, mark_y):
+		self.mark_x = mark_x
+		self.mark_y = mark_y
 		A2 = adjacency_matrix.flatten()
 		A3 = A2.tolist()
 		A4 = A3[0]
@@ -176,7 +165,7 @@ class sender:
 		self.num_nodes = len(info_dict)
 
 	def response(self, req):
-		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5)
+		return MapTalkResponse(self.category_list, self.x_list, self.y_list, self.z_list, self.num_nodes, self.A5, self.mark_x, self.mark_y)
 
 	def info_sender(self):
 		s = rospy.Service('send_complex_map', MapTalk ,self.response)
@@ -217,7 +206,12 @@ if __name__ == "__main__":
 	print('test')
 	rospy.init_node('complex_map_maker_server')
 	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+	(mark_x, mark_y) = gen_adj_array_info_dict.get_marks()
 	Category = gen_adj_array_info_dict.Category
+	#print(info_dict)
+	#if optimal:
+		#(info_dict, A) = remake_cloud(info_dict, A)
 	analysis = get_new_info(info_dict, A)
-	s = sender(analysis[0], analysis[1])
+	s = sender(analysis[0], analysis[1], mark_x, mark_y)
+	#s = sender(info_dict, A)
 	s.info_sender()

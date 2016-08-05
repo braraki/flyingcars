@@ -95,11 +95,10 @@ class visual_node:
 			self.color = (0, 0, 255)
 		elif category == Category.cloud:
 			self.color = (255, 255, 255)
-		elif category == Category.mark:
-			self.color = (0, 0, 0)
-		elif category == Category.waypoint:
+		elif category == Category.waypoint or category == Category.air_waypoint:
 			self.color = (255, 0, 255)
-
+		else:
+			self.color = (0, 0, 0)
 
 	def construct(self, int_marker):
 		n_marker = Marker()
@@ -234,7 +233,9 @@ class node_scape:
 		rospy.spin()
 
 class building_scape:
-	def __init__(self, node_scape):
+	def __init__(self, node_scape, mark_x, mark_y):
+		self.mark_x = mark_x
+		self.mark_y = mark_y
 		self.node_scape = node_scape
 		self.tile_dict = {}
 		self.crazyflie_list = []
@@ -246,6 +247,7 @@ class building_scape:
 
 	#does all of the tile work (roadratio, flyable, etc.)
 	def build_tiles(self):
+		'''
 		markxs = []
 		markys = []
 		z_dict = {}
@@ -259,13 +261,19 @@ class building_scape:
 				z_dict[(n.x, n.y)] = n.z
 		markxs = sorted(markxs)
 		markys = sorted(markys)
+		'''
+		base_road_ratio = None
+		markxs = list(set(self.mark_x))
+		markys = list(set(self.mark_y))
+		markxs = sorted(markxs)
+		markys = sorted(markys)
 		length = markxs[1] - markxs[0]
 		width = markys[1] - markys[0]
 		for x in markxs:
 			c_x = x + length*.5
 			for y in markys:
 				c_y = y + length*.5
-				z = z_dict[(x, y)]
+				z = 0#z_dict[(x, y)]
 				t = tile(c_x, c_y, z, length, width)
 				self.tile_dict[(c_x, c_y)] = t
 				for n in self.node_scape.node_list:
@@ -356,19 +364,18 @@ class building_scape:
 		int_marker.name = "my_marker"
 
 		for n in self.node_scape.node_list:
-			if n.category != Category.mark:
-				if air_node_display:
-					int_marker = n.construct(int_marker)
-				elif n.category != Category.cloud and n.category != Category.interface:
-					int_marker = n.construct(int_marker)
-			# 'commit' changes and send to all clients
+			if air_node_display:
+				int_marker = n.construct(int_marker)
+			elif n.category != Category.cloud and n.category != Category.interface:
+				int_marker = n.construct(int_marker)
+
 
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
 			if node1.category != Category.cloud and node2.category != Category.cloud:
 				if node1.category != Category.interface and node2.category != Category.interface:
-					if node1.category != Category.mark and node2.category != Category.mark:
+					if node1.category != Category.air_waypoint and node2.category != Category.air_waypoint:
 						int_marker = e.construct(int_marker)
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)
@@ -519,6 +526,8 @@ class tile:
 	#tests and assigns node if proper
 	def assign_node(self, n):
 		if n not in self.land_nodes + self.park_nodes:
+			if n.z > self.z:
+				self.z = n.z
 			if n.category == Category.land:
 				self.land_nodes.append(n)
 				n.assign_tile(self)
@@ -575,12 +584,12 @@ class tile:
 			for n in self.land_nodes + self.park_nodes:
 				suc = n.successors
 				for n2 in suc:
-					if n2.category == Category.interface:
+					if n2.category == Category.interface or n2.category == Category.cloud:
 						f = True
 						break
 		else:
 			for n in full_node_list:
-				if n.category == Category.cloud:
+				if n.category == Category.cloud or n.category == Category.interface:
 					if n.x >= self.x - .5*self.length and n.x <= self.x + .5*self.length:
 						if n.y >= self.y - .5*self.width and n.y <= self.y + .5*self.length:
 							f = True
@@ -831,9 +840,10 @@ if __name__ == "__main__":
 		A = gen_adj_array_info_dict.map_maker_client('send_map')[1]
 	else:
 		(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_map')
+	(mark_x, mark_y) = gen_adj_array_info_dict.get_marks()
 	Category = gen_adj_array_info_dict.Category
 	ns = node_scape(info_dict, A)
 	#ns.construct()
-	bs = building_scape(ns)
+	bs = building_scape(ns, mark_x, mark_y)
 	bs.build_tiles()
 	bs.construct()
