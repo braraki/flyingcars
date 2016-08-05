@@ -36,7 +36,8 @@ air_vel = float(rospy.get_param('/opt_planner/air_vel'))
 air_buffer_dist = float(rospy.get_param('/opt_planner/air_buffer_dist'))
 
 count = 0
-
+nontime_IDs = 0
+'''
 class Category(Enum):
 	mark = 0
 	land = 1
@@ -46,6 +47,96 @@ class Category(Enum):
 	waypoint = 5
 
 static_category_dict = {0: Category.mark, 1: Category.land, 2: Category.park, 3: Category.interface, 4: Category.cloud, 5: Category.waypoint}
+'''
+
+class SearchNode:
+	def __init__(self, state, parent, cost=0):
+		self.state = state
+		self.parent = parent
+		self.cost = cost
+
+	def path(self):
+		if self.parent == None:
+			return [self.state]
+		else:
+			return self.parent.path() + [self.state]
+	
+class PriorityQueue:
+	def __init__(self):
+		self.data = []
+		self.dist = {}
+	def push(self, item, cost):
+		self.data.append((cost, item))
+		self.dist[item] = cost
+	def pop(self):
+		self.data.sort()
+		min_node = self.data.pop(0)[1]
+		self.dist.pop(min_node,None)
+		return min_node
+	def is_empty(self):
+		return len(self.data) == 0
+	def in_queue(self,node):
+		return node in self.dist
+	def decrease_priority(self,node,cost):
+		for i,pair in enumerate(self.data):
+			old_cost,item = pair
+			if item == node:
+				self.data[i] = (cost,item)
+
+ 
+def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
+	if goal_test(start_state):
+		return [start_state]
+	start_node = SearchNode(start_state, None, 0)
+	agenda = PriorityQueue()
+	agenda.push(start_node, heuristic(start_state))
+	expanded = set()
+	while not agenda.is_empty():
+		parent = agenda.pop()
+		if parent.state not in expanded:
+			expanded.add(parent.state)
+			if goal_test(parent.state):
+				return parent.path()
+			for child_state, cost in successors(parent.state):
+				child = SearchNode(child_state, parent, parent.cost+cost)
+				if child_state in expanded:
+					continue
+				agenda.push(child, child.cost+heuristic(child_state))
+	return None
+
+def dijkstra(successors, goal_state):
+	distances = {}
+	distances[goal_state] = 0
+	agenda = PriorityQueue()
+	agenda.push(goal_state, 0)
+	
+	while not agenda.is_empty():
+		parent = agenda.pop()
+		for child, cost in successors(parent):
+			alt_cost = distances[parent] + cost
+			if child not in distances:
+				distances[child] = alt_cost
+				agenda.push(child, alt_cost)
+			elif alt_cost < distances[child]:
+				distances[child] = alt_cost
+				agenda.decrease_priority(child,alt_cost)
+				
+	print goal_state, distances
+	return distances
+
+def true_distances(info_dict, adj_array, goal):
+	predecessor_matrix = adj_array.transpose()
+	def successors(ID1):
+		(x1, y1, z1) = info_dict[ID1][0]
+		sucs = []
+		row = predecessor_matrix[ID1]
+		for (ID2, value) in enumerate(row):
+			if value == 1:
+				(fx, fy, fz) = info_dict[ID2][0]
+				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
+				sucs.append((ID2, dist_traveled))
+		return sucs
+	return dijkstra(successors, goal)
 
 def convert_graph(old_graph, old_adj, startend, time_horizon):
 	og = old_graph
@@ -53,9 +144,12 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 	th = time_horizon
 	num_IDs = len(old_graph)
 
-	# for i in range(num_IDs):
-	# 	for j in range(time_horizon+1):
-	# 		new_graph[(i,j)] = info_dict[ID]
+	true_dists = []
+	for i in range(len(startend)):
+		true_dists.append(true_distances(old_graph,oa,startend[i][1]))
+
+	print "TRUE DISTWSSS"
+	print true_dists
 
 	# new adj array
 	# the format is this: each node ID is represented by
@@ -92,7 +186,9 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 			for cf in range(cf_num):
 				cost_of_waiting = 0.1
 				costs[(cf,current_state,next_state)] = cost_of_waiting
-				dists[(cf,current_state,next_state)] = 0
+				print "KLJDSF"
+				print cf, ID
+				dists[(cf,current_state,next_state)] = true_dists[cf][ID]
 
 			# need to find successors of ID (sID) and connect
 			# ID+timestep*num_IDs to sID+(timestep+1)*num_IDs
@@ -112,7 +208,7 @@ def convert_graph(old_graph, old_adj, startend, time_horizon):
 					for cf in range(cf_num):
 						cost_of_travel = 0.2
 						costs[(cf,current_state, next_neighbor)] = cost_of_travel
-						dists[(cf,current_state, next_neighbor)] = distance
+						dists[(cf,current_state, next_neighbor)] = true_dists[cf][ID2]
 	
 
 	print num_IDs
@@ -126,8 +222,10 @@ def make_model(arcs, costs, dists, startend, num_IDs, type):
 
 	if type == 'makespan':
 		return makespan_model(m, flow, arcs, costs, startend, num_IDs)
-	elif type == 'distance':
-		return distance_model(m, flow, arcs, dists, startend, num_IDs)
+	elif type == 'minmax_distance':
+		return minmax_distance_model(m, flow, arcs, dists, startend, num_IDs)
+	elif type == 'total_distance':
+		return total_distance_model(m, flow, arcs, dists, startend, num_IDs)
 
 def generic_model(arcs,startend,num_IDs):
 	m = Model('netflow')
@@ -135,8 +233,7 @@ def generic_model(arcs,startend,num_IDs):
 	# add a flow variable for each robot-arc pair
 	flow = {}
 	for cf in range(cf_num):
-		for k,a in enumerate(arcs):
-			i,j = a
+		for i,j in arcs:
 			# the only variables that I want to maximize are
 			# the flow variables corresponding to robot i
 			# going back to loopback arc i
@@ -165,31 +262,37 @@ def generic_model(arcs,startend,num_IDs):
 		s, e = arcs[i]
 		for cf in range(cf_num):
 			if cf != i:
-				print cf, s, e
+				#print cf, s, e
 				m.addConstr(flow[cf,s,e] == 0,
 					'loopback_cap_%s_%s' % (s,e))
 
 	# flow conservation constraints
 	for cf in range(cf_num):
-		for j in range(num_IDs):
-			m.addConstr(quicksum(flow[cf,i,j] for i,j in arcs.select('*',j)) ==
-				quicksum(flow[cf,j,k] for j,k in arcs.select(j,'*')),
-					'node_%s_%s' % (cf,j))
+		for node in range(num_IDs):
+			m.addConstr(quicksum(flow[cf,i,j] for i,j in arcs.select('*',node)) ==
+				quicksum(flow[cf,j,k] for j,k in arcs.select(node,'*')),
+					'node_%s_%s' % (cf,node))
 
 
 	# add head-on collision constraint
-	for j in range(num_IDs):
-		out = arcs.select(j,'*')
+	already_checked = []
+	for node in range(num_IDs):
+		out = arcs.select(node,'*')
 		for u_t0, v_t1 in out:
-			v_t0 = v_t1 - num_IDs
-			u_t1 = u_t0 + num_IDs
-			if valid(v_t0, num_IDs) and valid(u_t1, num_IDs):
+			v_t0 = v_t1 - nontime_IDs
+			u_t1 = u_t0 + nontime_IDs
+			if valid(v_t0, num_IDs) and valid(u_t1, num_IDs) and u_t0 != v_t0:
 				v_out = arcs.select(v_t0,'*')
 				out_nodes = [y for x, y in v_out]
 				if u_t1 in out_nodes:
-					m.addConstr(quicksum(flow[cf,u_t0,v_t1] for cf in range(cf_num)) +
-						quicksum(flow[cf,v_t0,u_t1] for cf in range(cf_num)) <= 1,
-						'head_on_%s_%s' % (u_t0, v_t0))
+					edge1 = (u_t0, v_t1)
+					edge2 = (v_t0, u_t1)
+					if edge1 not in already_checked:
+						already_checked.append(edge1)
+						already_checked.append(edge2)
+						m.addConstr(quicksum(flow[cf,u_t0,v_t1] for cf in range(cf_num)) +
+							quicksum(flow[cf,v_t0,u_t1] for cf in range(cf_num)) <= 1,
+							'head_on_%s_%s' % (u_t0, v_t0))
 
 	# add meet collision constraint
 	for v in range(num_IDs):
@@ -214,7 +317,7 @@ def makespan_model(m, flow, arcs, costs, startend, num_IDs):
 
 	return m, flow
 
-def distance_model(m, flow, arcs, costs, startend, num_IDs):
+def minmax_distance_model(m, flow, arcs, costs, startend, num_IDs):
 
 	# this is the max distance, which we will want to minimize
 	x_max = m.addVar(vtype=GRB.INTEGER,name="x_max")
@@ -236,20 +339,43 @@ def distance_model(m, flow, arcs, costs, startend, num_IDs):
 
 	return m, flow
 
+def total_distance_model(m, flow, arcs, costs, startend, num_IDs):
+
+	# flow through the loopback arc MUST be 1 for its given robot
+	for cf in range(cf_num):
+		i,j = arcs[cf]
+		m.addConstr(flow[cf,i,j] == 1, 'loopback_filled_%s' %(cf))
+
+	# the objective function is the sum of every nonloopback arc/robot variable times
+	# its distance cost
+	objExpr = LinExpr()
+	for cf in range(cf_num):
+		for i,j in arcs[len(startend):]:
+			objExpr.addTerms(costs[cf,i,j],flow[cf,i,j])
+
+	m.setObjective(objExpr,GRB.MINIMIZE)
+
+	return m, flow
+
 def valid(node, num_IDs):
 	return node >= 0 and node < num_IDs
 
 class full_system:
-	def __init__(self, adj_array, info_dict):
+	def __init__(self, info_dict, adj_array):
 		self.adj_array = adj_array
 		self.info_dict = info_dict
-		self.num_IDs = len(info_dict)
+		self.num_IDs = len(self.info_dict)
 		self.system_list = []
 		self.pubTime = rospy.Publisher('~time_path_topic',HiPathTime, queue_size=10)
 		self.runner()
 
 	def runner(self):
-		time_horizon = 14
+		global nontime_IDs
+
+		nontime_IDs = self.num_IDs
+
+		time_horizon = 10
+		model_type = 'total_distance'
 		startend = tuplelist()
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
@@ -257,25 +383,34 @@ class full_system:
 			(ID1, ID2) = self.request_situation(cf_ID)
 			startend.append((ID1,ID2))
 
-		na, costs, arcs, dists = convert_graph(info_dict,A,startend,time_horizon)
+		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,time_horizon)
 
-		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),'distance')
+		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
 
 		m.optimize()
 
+		original_th = time_horizon
+
+		while m.status != GRB.Status.OPTIMAL and time_horizon < original_th*cf_num:
+			time_horizon = time_horizon + 1
+			na, costs, arcs, dists = convert_graph(self.info_dict,A, startend,time_horizon)
+			m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
+			m.optimize()
+
 		# Print solution
 		if m.status == GRB.Status.OPTIMAL:
-		    solution = m.getAttr('x', flow)
-		    for h in range(cf_num):
-		        print('\nOptimal flows for %s:' % h)
-		        for i,j in arcs:
-		            if solution[h,i,j] > 0:
-		                print('%s -> %s: %g' % (i, j, solution[h,i,j]))
+			print "TIME HORIZON: %d" % (time_horizon)
+			solution = m.getAttr('x', flow)
+			for h in range(cf_num):
+				print('\nOptimal flows for %s:' % h)
+				for i,j in arcs:
+					if solution[h,i,j] > 0:
+						print('%s -> %s: %g' % (i, j, solution[h,i,j]))
 
 			paths,times = self.extract_paths(solution, arcs)
 			for cf in range(cf_num):
 				print cf, paths[cf]
-				print times[cf]
+				#print times[cf]
 				self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
 
 	def extract_paths(self,solution,arcs):
@@ -287,7 +422,7 @@ class full_system:
 				if solution[cf,i,j] > 0:
 					path.append((i,j))
 			first_node = path.pop(0)[1]
-			print path
+			#print path
 			first_timestep = 0
 			ordered_path = self.order_path(path,first_node)
 			print ordered_path
