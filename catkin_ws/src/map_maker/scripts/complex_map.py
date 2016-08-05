@@ -92,9 +92,8 @@ def get_new_info(info_dict, adjacency_array):
 	G = nx.DiGraph()
 
 	e_list = []
-	used_IDs = []
+	used_pairs = []
 	for (ID1, row) in enumerate(adjacency_array):
-		used_IDs.append(ID1)
 		pass_1 = False
 		G.add_node(ID1)
 		info1 = info_dict[ID1]
@@ -103,7 +102,8 @@ def get_new_info(info_dict, adjacency_array):
 		if c1 != Category.land and c1 != Category.park:
 			pass_1 = True
 		for (ID2, value) in enumerate(row):
-			if value == 1 and ID2 not in used_IDs:
+			if value == 1 and (ID2, ID1) not in used_pairs:
+				used_pairs.append((ID1, ID2))
 				both_ways = False
 				row = adjacency_array[ID2]
 				value2 = row[ID1]

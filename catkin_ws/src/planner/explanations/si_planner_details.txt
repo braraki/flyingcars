@@ -1,0 +1,12 @@
+si_planner reserves extra nodes than just the one it is at
+This is done by calling nodes from a dictionary, mapping one ID to a list of IDs
+It only does this for nodes in the air, allowing a distance buffer to be present in the air
+Generally nodes within a certain distance are then considered reserved when a close node is reserved
+The successor function does not check whether all of the nodes neighbors are open, thus allowing for buffer zones to overlap (which is good)
+
+The distance function between the nodes is distorted by a z coefficient.
+This allows for a node to reserve nodes that are further away vertically, but due to the path structure, have parallel, nearby edges
+This helps preserve a buffer distance
+
+Park nodes are only allowed as a successor if they fulfill the goal test.
+This means that no paths run through park nodes, making the map a well formed infrastructure.
