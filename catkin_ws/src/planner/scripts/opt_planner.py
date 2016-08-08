@@ -142,15 +142,11 @@ def true_distances(info_dict, adj_array, goal):
 		return sucs
 	return dijkstra(successors, goal)
 
-def convert_graph(old_graph, old_adj, startend, time_horizon):
+def convert_graph(old_graph, old_adj, startend, true_dists, time_horizon):
 	og = old_graph
 	oa = old_adj
 	th = time_horizon
 	num_IDs = len(old_graph)
-
-	true_dists = []
-	for i in range(len(startend)):
-		true_dists.append(true_distances(old_graph,oa,startend[i][1])[0])
 
 	# new adj array
 	# the format is this: each node ID is represented by
@@ -374,6 +370,7 @@ class full_system:
 
 		model_type = 'total_distance'
 		startend = tuplelist()
+		true_steps = []
 		true_dists = []
 		min_time_horizon = 0
 		for cf_ID in range(cf_num):
@@ -384,12 +381,13 @@ class full_system:
 			true_dist_list = true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])
 			print startend[cf_ID]
 			#print true_dist_list
-			true_dists.append(true_dist_list[1])
-			if true_dists[cf_ID][ID1] > min_time_horizon:
-				min_time_horizon = true_dists[cf_ID][ID1]
+			true_dists.append(true_dist_list[0])
+			true_steps.append(true_dist_list[1])
+			if true_steps[cf_ID][ID1] > min_time_horizon:
+				min_time_horizon = true_steps[cf_ID][ID1]
 			print "min horizon %d for cf %d" % (min_time_horizon, cf_ID)
 
-		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,min_time_horizon)
+		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,true_dists,min_time_horizon)
 
 		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(min_time_horizon+1),model_type)
 
@@ -399,7 +397,7 @@ class full_system:
 
 		while m.status != GRB.Status.OPTIMAL and time_horizon < 2*min_time_horizon*cf_num:
 			time_horizon = time_horizon + 1
-			na, costs, arcs, dists = convert_graph(self.info_dict,A, startend,time_horizon)
+			na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,true_dists,time_horizon)
 			m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
 			m.optimize()
 

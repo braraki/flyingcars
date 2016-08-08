@@ -7,7 +7,7 @@
   <arg name="planner" default="si_planner" />
   <arg name="buildings" default="True" />
   <arg name="continuous" default="True" />
-  <arg name="air_vel" default=".5" />
+  <arg name="air_vel" default="1.0" />
   <arg name="land_vel" default=".25" />
 
   <remap from="simple_marker/time_path_topic" to="$(arg planner)/time_path_topic" />
