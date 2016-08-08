@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+from map_maker import gen_adj_array_info_dict
+
+Category = gen_adj_array_info_dict.Category
+
 mark_x = []
 mark_y = []
 
