@@ -16,6 +16,7 @@ env/
 build/
 devel/
 catkin_ws/devel/
+catkin_ws/src/flyingcar_demo/rosbag_files/
 catkin_ws/build/
 develop-eggs/
 dist/
