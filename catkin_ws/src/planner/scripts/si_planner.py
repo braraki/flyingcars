@@ -24,6 +24,7 @@ import thread
 #import docx
 
 from map_maker import gen_adj_array_info_dict
+from planner import planner_helper
 #arguments
 
 used_park_IDs = []
@@ -92,6 +93,12 @@ class PriorityQueue:
 		return self.data.pop(0)[1]
 	def is_empty(self):
 		return len(self.data) == 0
+	def decrease_priority(self, item, cost):
+		for i,pair in enumerate(self.data):
+			old_cost,old_item = pair
+			if item == old_item:
+				self.data[i] = (cost,item)
+				break
  
 def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 	planning_start_time = time.time()
@@ -154,6 +161,54 @@ def find_start_interval(state, time):
 			return(i)
 	print('interval not found')
 	print('AAAAAAAAAAAAAAAAAAA')
+
+def dijkstra(successors, goal_state):
+	times = {}
+	times[goal_state] = 0
+	agenda = PriorityQueue()
+	agenda.push(goal_state, 0)
+	
+	while not agenda.is_empty():
+		parent = agenda.pop()
+		children = successors(parent)
+		for child, cost in children:
+			alt_cost = times[parent] + cost
+			if child not in times:
+				times[child] = alt_cost
+				agenda.push(child, alt_cost)
+			elif alt_cost < times[child]:
+				times[child] = alt_cost
+				agenda.decrease_priority(child,alt_cost)
+	return times
+
+def true_times(info_dict, adj_array, goal):
+	predecessor_matrix = adj_array.transpose()
+	def successors(ID1):
+		#((x1, y1, z1),c1) = info_dict[ID1]
+		sucs = []
+		row = predecessor_matrix[ID1]
+		for (ID2, value) in enumerate(row):
+			if value == 1:
+				'''
+				((fx, fy, fz), fc) = info_dict[ID2]
+				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
+				vel = land_vel
+				if c1 != Category.land or c1 != Category.park or c1 != Category.waypoint or c2 != Category.land or c2 != Category.park or c2 != Category.waypoint:
+					vel = air_vel
+				time_passed = dist_traveled / float(vel)
+				'''
+				time_passed = planner_helper.get_cost(info_dict, ID1, goal, air_vel, land_vel)
+				sucs.append((ID2, time_passed))
+		return sucs
+	return dijkstra(successors, goal)
+
+
+
+
+
+
+
+
 
 #single crazyflie
 class system:
@@ -246,6 +301,7 @@ class system:
 	def find_path(self, ID1, end_ID):
 		#print('find path')
 		(x2, y2, z2) = self.info_dict[end_ID][0]
+		times = true_times(self.info_dict, self.adj_array, end_ID)
 		'''
 		def successors(state, t):
 			#update visit dict
@@ -347,7 +403,10 @@ class system:
 			time_heur = dist/float(air_vel)
 			return(time_heur)
 
-		return(a_star(successors, ID1, goal_test, heur))
+		def true_time_heur(state):
+			return(times[state])
+
+		return(a_star(successors, ID1, goal_test, true_time_heur))
 	'''
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
