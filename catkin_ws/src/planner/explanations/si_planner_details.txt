@@ -10,3 +10,5 @@ This helps preserve a buffer distance
 
 Park nodes are only allowed as a successor if they fulfill the goal test.
 This means that no paths run through park nodes, making the map a well formed infrastructure.
+
+Heuristic uses true time now.  It is a dijkstra.

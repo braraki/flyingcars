@@ -373,9 +373,9 @@ class building_scape:
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
 			node2 = e.node2
-			if True:#node1.category != Category.cloud and node2.category != Category.cloud:
-				if True:#node1.category != Category.interface and node2.category != Category.interface:
-					if True:#node1.category != Category.air_waypoint and node2.category != Category.air_waypoint:
+			if node1.category != Category.cloud and node2.category != Category.cloud:
+				if node1.category != Category.interface and node2.category != Category.interface:
+					if node1.category != Category.air_waypoint and node2.category != Category.air_waypoint:
 						int_marker = e.construct(int_marker)
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)

@@ -25,6 +25,12 @@ static_category_dict = {0: Category.land, 1: Category.park, 2: Category.interfac
 def get_marks():
 	return((mark_x, mark_y))
 
+def is_air(node_category):
+	if node_category == Category.interface or node_category == Category.cloud or node_category == Category.air_waypoint:
+		return True
+	else:
+		return False
+
 #map_topic should be 'send_map' or 'send_complex_map'
 def map_maker_client(map_topic='send_complex_map'):
 	global mark_x
