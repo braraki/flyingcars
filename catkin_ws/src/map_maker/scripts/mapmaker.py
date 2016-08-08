@@ -62,6 +62,7 @@ edge_num = 0
 
 Category = gen_adj_array_info_dict.Category
 
+
 class return_node:
 	def __init__(self, x, y, z, ID, category):
 		self.x = x
@@ -86,6 +87,7 @@ class edge:
 
 class node:
 	def __init__(self, x, y, z = 0, angle = None, ID = None, category = None, successors = []):
+		global node_num
 		self.x = x
 		self.y = y
 		self.z = z
@@ -541,19 +543,23 @@ class landscape:
 	#assigns IDs to the nodes, done without any particular order/pattern (there may be a pattern, but its not intended)
 	def assign_ID(self):
 		num = 0
+		all_nodes = []
 		for t in self.tile_dict.values():
 			for n in t.node_list:
-				n.ID = num
-				num += 1
+				all_nodes.append(((n.z, n.y, n.x), n))
 		if self.interface != None:
 			for ns in self.interface.node_dict.values():
 				for n in ns:
-					n.ID = num
-					num += 1
+					all_nodes.append(((n.z, n.y, n.x), n))
 		if self.cloud != None:
 			for n in self.cloud.node_dict.values():
-				n.ID = num
-				num += 1
+				all_nodes.append(((n.z, n.y, n.x), n))
+		all_nodes = sorted(all_nodes)
+		for info in all_nodes:
+			n = info[1]
+			n.ID = num
+			num += 1
+
 
 	#generates lists of the simple node and edge class that represent the map
 	def get_nodes_and_edges(self):

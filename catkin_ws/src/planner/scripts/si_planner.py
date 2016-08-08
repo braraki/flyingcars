@@ -64,7 +64,7 @@ planning_time = 2
 wait_time = .1
 extra_time = 0
 
-
+best_heur = True
 #doc = docx.Document()
 
 
@@ -101,7 +101,6 @@ class PriorityQueue:
 				break
  
 def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
-	planning_start_time = time.time()
 	start_time = time.time()+planning_time
 	if goal_test(start_state, start_time):
 		return [start_state]
@@ -123,16 +122,13 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 			cont = True
 		if cont:
 			if goal_test(parent.state, parent.time):
-				planning_end_time = time.time()
-				print('time to plan')
-				print(planning_end_time - planning_start_time)
 				print(parent.path())
 				#doc.add_paragraph('time to plan')
 				#doc.save('path_planning_results.docx')
 				#doc.add_paragraph(str(planning_end_time - planning_start_time))
 				#doc.add_paragraph(str(parent.path()))
 				#doc.add_paragraph(' ')
-				return (parent.path(), planning_end_time - planning_start_time)
+				return (parent.path())
 			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
 				ID = child_state
 				child = SearchNode(child_state, parent, t, parent.cost+cost, interval)
@@ -300,8 +296,10 @@ class system:
 
 	def find_path(self, ID1, end_ID):
 		#print('find path')
+		start_planning_time = time.time()
 		(x2, y2, z2) = self.info_dict[end_ID][0]
-		times = true_times(self.info_dict, self.adj_array, end_ID)
+		if best_heur:
+			time_dict = true_times(self.info_dict, self.adj_array, end_ID)
 		'''
 		def successors(state, t):
 			#update visit dict
@@ -404,9 +402,15 @@ class system:
 			return(time_heur)
 
 		def true_time_heur(state):
-			return(times[state])
+			return(time_dict[state])
 
-		return(a_star(successors, ID1, goal_test, true_time_heur))
+		if best_heur:
+			path = a_star(successors, ID1, goal_test, true_time_heur)
+		else:
+			path = a_star(successors, ID1, goal_test, heur)
+		total_planning_time = time.time() - start_planning_time
+		print('Time to plan: '+str(total_planning_time))
+		return(path, total_planning_time)
 	'''
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
