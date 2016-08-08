@@ -36,7 +36,9 @@
   <!--
   <node name="recorder" pkg="flyingcar_demo" type="recorder.py" output="screen" />
   -->
-  <node name="record" pkg="rosbag" type="record" args="-O recorder_test.bag $(arg planner)/time_path_topic" />
-
+  <!--
+  <node name="record_path" pkg="rosbag" type="record" args="$(arg planner)/time_path_topic" />
+  <node name="record_pos" pkg="rosbag" type="record" args="-O record_pos.bag simulator/SimPos_topic" />
+  -->
 
 </launch>
