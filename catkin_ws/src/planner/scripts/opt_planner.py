@@ -82,6 +82,7 @@ class PriorityQueue:
 			old_cost,item = pair
 			if item == node:
 				self.data[i] = (cost,item)
+				break
 
  
 def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
@@ -138,7 +139,20 @@ def true_distances(info_dict, adj_array, goal):
 			if value == 1:
 				(fx, fy, fz) = info_dict[ID2][0]
 				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
-				sucs.append((ID2, dist_traveled))
+				node1_category = info_dict[ID1][1]
+				vel = land_vel
+				# if the ID1 node is an air node, you will definitely travel
+				# to node 2 at air velocity
+				if gen_adj_array_info_dict.is_air(node1_category):
+					vel = air_vel
+				else:
+					# if ID1 is land but it is going to an air node then
+					# vel will be air_vel
+					node2_category = info_dict[ID2][1]
+					if gen_adj_array_info_dict.is_air(node2_category):
+						vel = air_vel
+				time_to_travel = dist_traveled/vel
+				sucs.append((ID2, time_to_travel))
 		return sucs
 	return dijkstra(successors, goal)
 
