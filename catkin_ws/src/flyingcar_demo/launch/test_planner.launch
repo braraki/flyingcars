@@ -16,6 +16,8 @@
   <remap from="recorder/time_path_topic" to="$(arg planner)/time_path_topic" />
 
   <remap from="simple_marker/Start_SimPos_topic" to="setup/Start_SimPos_topic" />
+  <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
+  <remap from="simulator/Start_SimPos_topic" to="setup/Start_SimPos_topic" />
 
   <include file="$(find map_maker)/launch/visualizer.launch">
   	<arg name="cf_num" value="$(arg cf_num)" />
@@ -31,7 +33,7 @@
     <arg name="land_vel" value="$(arg land_vel)" />
     <arg name="air_vel" value="$(arg air_vel)" />
     <arg name="time_step" default=".5" />
-    <arg name="optimal" default="True" />
+    <arg name="optimal" default="False" />
   </include>
 
   <include file="$(find planner)/launch/$(arg planner).launch">

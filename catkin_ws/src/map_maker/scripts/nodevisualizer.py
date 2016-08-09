@@ -330,13 +330,13 @@ class building_scape:
 				for cf_ID in range(len(data.x)):
 					cf = crazyflie(cf_ID, [], self.server, self.node_scape)
 					self.crazyflie_list[cf_ID] = cf
-			for id in range(len(data.x)):
-				x = data.x[id]
-				y = data.y[id]
-				z = data.z[id]
+			for index in range(len(data.x)):
+				x = data.x[index]
+				y = data.y[index]
+				z = data.z[index]
 				print((x,y,z))
-				if self.crazyflie_list[id] != None:
-					cf = self.crazyflie_list[id]
+				if self.crazyflie_list[index] != None:
+					cf = self.crazyflie_list[index]
 					cf.update_flie((x,y,z))
 					cf.construct_flie(False)
 			self.server.applyChanges()
@@ -359,16 +359,19 @@ class building_scape:
 		#thread.start_new_thread ( self.fluid_construct , ())
 
 		# create an interactive marker for our server
-		int_marker = InteractiveMarker()
-		int_marker.header.frame_id = "base_link"
-		int_marker.name = "my_marker"
+		n_int_marker = InteractiveMarker()
+		n_int_marker.header.frame_id = "base_link"
+		n_int_marker.name = "my_node_marker"
 
 		for n in self.node_scape.node_list:
 			if air_node_display:
-				int_marker = n.construct(int_marker)
+				n_int_marker = n.construct(n_int_marker)
 			elif n.category != Category.cloud and n.category != Category.interface:
-				int_marker = n.construct(int_marker)
+				n_int_marker = n.construct(n_int_marker)
 
+		e_int_marker = InteractiveMarker()
+		e_int_marker.header.frame_id = "base_link"
+		e_int_marker.name = "my_edge_marker"
 
 		for e in self.node_scape.edge_list:
 			node1 = e.node1
@@ -376,15 +379,24 @@ class building_scape:
 			if node1.category != Category.cloud and node2.category != Category.cloud:
 				if node1.category != Category.interface and node2.category != Category.interface:
 					if node1.category != Category.air_waypoint and node2.category != Category.air_waypoint:
-						int_marker = e.construct(int_marker)
+						e_int_marker = e.construct(e_int_marker)
+
+		t_int_marker = InteractiveMarker()
+		t_int_marker.header.frame_id = "base_link"
+		t_int_marker.name = "my_tile_marker"
+
 		tiles = self.tile_dict.values()
 		random.shuffle(tiles)
 		for t in tiles:
-			int_marker = t.construct(int_marker)
-		self.construct_2(int_marker)
+			t_int_marker = t.construct(t_int_marker)
+		thread.start_new_thread(self.construct_2, (n_int_marker, e_int_marker, t_int_marker))
+		#self.construct_2(n_int_marker, e_int_marker, t_int_marker)
+		time.sleep(1000000000)
 		
-	def construct_2(self, int_marker):
-		self.server.insert(int_marker, processFeedback)
+	def construct_2(self, im1, im2, im3):
+		self.server.insert(im1, processFeedback)
+		self.server.insert(im2, processFeedback)
+		self.server.insert(im3, processFeedback)
 		self.server.applyChanges()
 		rospy.spin()
 

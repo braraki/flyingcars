@@ -25,6 +25,8 @@ import thread
 from map_maker import gen_adj_array_info_dict
 
 
+import sys, select, termios, tty
+
 cf_num = int(rospy.get_param('/setup/cf_num'))
 centered = bool(rospy.get_param('/setup/centered'))
 
@@ -98,6 +100,7 @@ def setter():
 	StartPub = rospy.Publisher('~Starter', Bool, queue_size = 10)
 	#waits so that subscriber will recieve message
 	time.sleep(1)
+	print('Are you ready to begin, if so type Y: ')
 	go = 'N'
 	while go != 'Y' and go != 'y':
 		if not rospy.is_shutdown():
@@ -105,17 +108,27 @@ def setter():
 			IDPub.publish(starting_IDs)
 		else:
 			break
-		go = raw_input('Are you ready to begin, if so type Y: ')	
+		#go = raw_input('Are you ready to begin, if so type Y: ')
+		go = get_key()
 	StartPub.publish(True)
 
 
 
-
+def get_key():
+	tty.setraw(sys.stdin.fileno())
+	r_list, _, _ = select.select([sys.stdin], [], [], .1)
+	if r_list:
+		key = sys.stdin.read(1)
+	else:
+		key = ''
+	termios.tcsetattr(sys.stdin, termios.TCSADRAIN, settings)
+	return(key)
 
 
 
 
 if __name__ == "__main__":
+	settings = termios.tcgetattr(sys.stdin)
 	#print('test')
 	rospy.init_node('setup', anonymous = True)
 	(info_dict, A) = gen_adj_array_info_dict.map_maker_client('send_complex_map')

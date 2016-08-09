@@ -8,7 +8,6 @@
   <arg name="time_step" default=".5" />
 
 
-  <remap from="simple_marker/SimPos_topic" to="simulator/SimPos_topic" />
   <!--
   <include file="$(find map_maker)/launch/non_vis.launch">
     <arg name="cf_num" value="$(arg cf_num)" />
