@@ -187,6 +187,7 @@ class full_system:
 
 	def runner(self):
 		rospy.Subscriber('~time_path_topic', HiPathTime, self.act)
+		rospy.Subscriber('~Start_SimPos_topic', SimPos, self.setup)
 		#print('in runner')
 		rospy.spin()
 
@@ -205,7 +206,7 @@ class full_system:
 		rate = rospy.Rate(1/float(delay))
 		start_time = time.time()
 		reps = 0
-		while self.go:
+		while True:#self.go:
 			actual_time = time.time()
 			
 			#if reps%1000 == 0:
@@ -214,16 +215,19 @@ class full_system:
 				#print('true clock time: '+str(actual_time))
 			for index in range(len(self.system_list)):
 				sys = self.system_list[index]
+				if sys != None:
 
-				'''if you switch the comments for the loc line, you should be able to go
-				between the computers actual time (big numbers) and the simulated time'''
+					'''if you switch the comments for the loc line, you should be able to go
+					between the computers actual time (big numbers) and the simulated time'''
 
-				#loc = sys.get_position(current_time)
-				loc = sys.get_position(round(actual_time, 2))
+					#loc = sys.get_position(current_time)
+					loc = sys.get_position(round(actual_time, 2))
 
+					self.x_list[index] = loc[0]
+					self.y_list[index] = loc[1]
+					self.z_list[index] = loc[2]
 
-
-				(self.x_list[index], self.y_list[index], self.z_list[index]) = loc
+					#(self.x_list[index], self.y_list[index], self.z_list[index]) = loc
 			if not rospy.is_shutdown():
 				test_distance(self.x_list, self.y_list, self.z_list)
 				self.pub.publish(self.x_list, self.y_list, self.z_list)
@@ -248,10 +252,16 @@ class full_system:
 		if None not in self.system_list:
 			self.go = True
 			#self.sub_run()
-			thread.start_new_thread ( self.sub_run , ())
+			#thread.start_new_thread ( self.sub_run , ())
 			#print('thread initialized')
 
-
+	def setup(self, data):
+		self.cf_num = len(data.x)
+		self.x_list = list(data.x)
+		self.y_list = list(data.y)
+		self.z_list = list(data.z)
+		self.system_list = [None]*self.cf_num
+		thread.start_new_thread( self.sub_run, ())
 '''
 
 def map_maker_client():

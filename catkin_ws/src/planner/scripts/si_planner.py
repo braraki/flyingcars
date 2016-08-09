@@ -64,7 +64,7 @@ planning_time = 2
 wait_time = .1
 extra_time = 0
 
-best_heur = False
+best_heur = True
 #doc = docx.Document()
 
 
@@ -101,21 +101,23 @@ class PriorityQueue:
 				self.data[i] = (cost,item)
 				break
  
-def a_star(successors, start_state, start_voltage, goal_test, heuristic=lambda x: 0):
+def a_star(info_dict, successors, start_state, start_voltage, goal_test, heuristic=lambda x: 0):
 	start_time = time.time()+planning_time
 	if goal_test(start_state, start_time):
-		return [start_state]
+		return ([start_state], start_voltage)
 	start_node = SearchNode(start_state, None, start_time , start_voltage, 0, find_start_interval(start_state, start_time))
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
 	cost_expanded = {}
 	time_expanded = {}
+	kept_expanded = {}
 	reps = 0
 	while not agenda.is_empty():
 		reps += 1
 		#print(reps)
 		parent = agenda.pop()
 		cont = False
+
 		if (parent.state, parent.interval) not in cost_expanded:
 			cost_expanded[(parent.state, parent.interval)] = parent.cost
 			cont = True
@@ -128,6 +130,29 @@ def a_star(successors, start_state, start_voltage, goal_test, heuristic=lambda x
 		elif time_expanded[(parent.state, parent.interval)] > parent.time:
 			time_expanded[(parent.state, parent.interval)] = parent.time
 			cont = True
+		'''
+		if (parent.state, parent.interval) not in kept_expanded:
+			kept_expanded[(parent.state, parent.interval)] = [(parent.time, parent.cost)]
+			cont = True
+		else:
+			kepts = kept_expanded[(parent.state, parent.interval)]
+			projected_costs = []
+			for (t, c) in kepts:
+				if t < parent.time:
+					elapsed_time = parent.time - t
+					used_energy = planner_helper.get_wait_energy(info_dict, parent.state, elapsed_time)
+					projected_cost = c + planner_helper.get_cost(used_energy, elapsed_time)
+					projected_costs.append(projected_cost)
+			keep = True
+			for pc in projected_costs:
+				if pc < c:
+					keep = False
+					#print('not kept')
+					break
+			if keep:
+				kept_expanded[(parent.state, parent.interval)] += [(parent.time, parent.cost)]
+				cont = True
+		'''
 		if cont:
 			if goal_test(parent.state, parent.time):
 				print(parent.path())
@@ -167,8 +192,8 @@ def find_start_interval(state, time):
 	print('AAAAAAAAAAAAAAAAAAA')
 
 def dijkstra(successors, goal_state):
-	times = {}
-	times[goal_state] = 0
+	costs = {}
+	costs[goal_state] = 0
 	agenda = PriorityQueue()
 	agenda.push(goal_state, 0)
 	
@@ -176,22 +201,22 @@ def dijkstra(successors, goal_state):
 		parent = agenda.pop()
 		children = successors(parent)
 		for child, cost in children:
-			alt_cost = times[parent] + cost
-			if child not in times:
-				times[child] = alt_cost
+			alt_cost = costs[parent] + cost
+			if child not in costs:
+				costs[child] = alt_cost
 				agenda.push(child, alt_cost)
-			elif alt_cost < times[child]:
-				times[child] = alt_cost
+			elif alt_cost < costs[child]:
+				costs[child] = alt_cost
 				agenda.decrease_priority(child,alt_cost)
-	return times
+	return costs
 
-def true_times(info_dict, adj_array, goal):
+def true_costs(info_dict, adj_array, goal):
 	predecessor_matrix = adj_array.transpose()
-	def successors(ID1):
+	def successors(ID2):
 		#((x1, y1, z1),c1) = info_dict[ID1]
 		sucs = []
-		row = predecessor_matrix[ID1]
-		for (ID2, value) in enumerate(row):
+		row = predecessor_matrix[ID2]
+		for (ID1, value) in enumerate(row):
 			if value == 1:
 				'''
 				((fx, fy, fz), fc) = info_dict[ID2]
@@ -201,8 +226,11 @@ def true_times(info_dict, adj_array, goal):
 					vel = air_vel
 				time_passed = dist_traveled / float(vel)
 				'''
-				time_passed = planner_helper.get_cost(info_dict, ID1, goal, air_vel, land_vel)
-				sucs.append((ID2, time_passed))
+				#time_passed = planner_helper.get_cost(info_dict, ID1, goal, air_vel, land_vel)
+				t = planner_helper.get_time(info_dict, ID1, ID2, air_vel, land_vel)
+				e = planner_helper.get_energy(info_dict, ID1, ID2, t, air_vel, land_vel)
+				c = planner_helper.get_cost(e, t)
+				sucs.append((ID1, c))
 		return sucs
 	return dijkstra(successors, goal)
 
@@ -311,7 +339,7 @@ class system:
 		start_planning_time = time.time()
 		(x2, y2, z2) = self.info_dict[end_ID][0]
 		if best_heur:
-			time_dict = true_times(self.info_dict, self.adj_array, end_ID)
+			cost_dict = true_costs(self.info_dict, self.adj_array, end_ID)
 
 		def successors(state, time, voltage, my_interval):
 			#print(" ")
@@ -349,7 +377,7 @@ class system:
 							if interval[0] + space_time < current_time < interval[1] - space_time:
 								suc_state = ID2
 
-								energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed)
+								energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed, air_vel, land_vel)
 								cost = planner_helper.get_cost(energy, time_passed)
 								voltage_drop = planner_helper.get_voltage(energy)
 								final_voltage = voltage - voltage_drop
@@ -370,7 +398,7 @@ class system:
 									if interval[0] <= arrival_time < interval[1] - space_time:
 
 										time_passed = arrival_time - time
-										energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed)
+										energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed, air_vel, land_vel)
 										cost = planner_helper.get_cost(energy, time_passed)
 										voltage_drop = planner_helper.get_voltage(energy)
 										final_voltage = voltage - voltage_drop
@@ -398,13 +426,13 @@ class system:
 			time_heur = dist/float(air_vel)
 			return(time_heur)
 
-		def true_time_heur(state):
-			return(time_dict[state])
+		def true_cost_heur(state):
+			return(cost_dict[state])
 
 		if best_heur:
-			p_info = a_star(successors, ID1, self.voltage, goal_test, true_time_heur)
+			p_info = a_star(self.info_dict, successors, ID1, self.voltage, goal_test, true_cost_heur)
 		else:
-			p_info= a_star(successors, ID1, self.voltage, goal_test, heur)
+			p_info= a_star(self.info_dict, successors, ID1, self.voltage, goal_test, heur)
 		if p_info!= None:
 			(path, self.voltage) = p_info
 			total_planning_time = time.time() - start_planning_time
