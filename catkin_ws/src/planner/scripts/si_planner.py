@@ -64,15 +64,16 @@ planning_time = 2
 wait_time = .1
 extra_time = 0
 
-best_heur = True
+best_heur = False
 #doc = docx.Document()
 
 
 class SearchNode:
-	def __init__(self, state, parent, time, cost=0, interval=None):
+	def __init__(self, state, parent, time, voltage, cost=0, interval=None):
 		self.state = state
 		self.parent = parent
 		self.time = time
+		self.voltage = voltage
 		self.cost = cost
 		self.interval = interval
 
@@ -100,25 +101,32 @@ class PriorityQueue:
 				self.data[i] = (cost,item)
 				break
  
-def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
+def a_star(successors, start_state, start_voltage, goal_test, heuristic=lambda x: 0):
 	start_time = time.time()+planning_time
 	if goal_test(start_state, start_time):
 		return [start_state]
-	start_node = SearchNode(start_state, None, start_time , 0, find_start_interval(start_state, start_time))
+	start_node = SearchNode(start_state, None, start_time , start_voltage, 0, find_start_interval(start_state, start_time))
 	agenda = PriorityQueue()
 	agenda.push(start_node, heuristic(start_state))
-	expanded = {}
+	cost_expanded = {}
+	time_expanded = {}
 	reps = 0
 	while not agenda.is_empty():
 		reps += 1
 		#print(reps)
 		parent = agenda.pop()
 		cont = False
-		if (parent.state, parent.interval) not in expanded:
-			expanded[(parent.state, parent.interval)] = parent.time
+		if (parent.state, parent.interval) not in cost_expanded:
+			cost_expanded[(parent.state, parent.interval)] = parent.cost
 			cont = True
-		elif expanded[(parent.state, parent.interval)] > parent.time:
-			expanded[(parent.state, parent.interval)] = parent.time
+		elif cost_expanded[(parent.state, parent.interval)] > parent.cost:
+			cost_expanded[(parent.state, parent.interval)] = parent.cost
+			cont = True
+		if (parent.state, parent.interval) not in time_expanded:
+			time_expanded[(parent.state, parent.interval)] = parent.time
+			cont = True
+		elif time_expanded[(parent.state, parent.interval)] > parent.time:
+			time_expanded[(parent.state, parent.interval)] = parent.time
 			cont = True
 		if cont:
 			if goal_test(parent.state, parent.time):
@@ -128,10 +136,10 @@ def a_star(successors, start_state, goal_test, heuristic=lambda x: 0):
 				#doc.add_paragraph(str(planning_end_time - planning_start_time))
 				#doc.add_paragraph(str(parent.path()))
 				#doc.add_paragraph(' ')
-				return (parent.path())
-			for child_state, t, cost, interval in successors(parent.state, parent.time, parent.interval):
+				return (parent.path(), parent.voltage)
+			for child_state, t, v, cost, interval in successors(parent.state, parent.time, parent.voltage, parent.interval):
 				ID = child_state
-				child = SearchNode(child_state, parent, t, parent.cost+cost, interval)
+				child = SearchNode(child_state, parent, t, v, parent.cost+cost, interval)
 				agenda.push(child, child.cost+heuristic(child_state))
 
 	print('reps')
@@ -224,6 +232,8 @@ class system:
 		self.p = None
 		self.times = []
 		self.planning_time = None
+		self.voltage = 10
+		self.running = True
 
 	def generate_random_path(self):
 		'''
@@ -251,9 +261,11 @@ class system:
 		'''
 		(ID1, ID2) = self.request_situation()
 		self.end_pos = self.info_dict[ID2][0]
-		(p, self.planning_time) = self.find_path(ID1, ID2)
-		p2 = self.edit_path(p)
-		return(p2)
+		p_info = self.find_path(ID1, ID2)
+		if p_info != None:
+			(p, self.planning_time) = p_info
+			p2 = self.edit_path(p)
+			return(p2)
 		
 	def request_situation(self):
 		global count
@@ -300,38 +312,8 @@ class system:
 		(x2, y2, z2) = self.info_dict[end_ID][0]
 		if best_heur:
 			time_dict = true_times(self.info_dict, self.adj_array, end_ID)
-		'''
-		def successors(state, t):
-			#update visit dict
-			visit_dict[state] += 1
-			#time = state[1]
-			(x1, y1, z1) = self.info_dict[state][0]
-			c1 = self.info_dict[state][1]
-			sucs = []
-			row = self.adj_array[state]
-			for (ID2, value) in enumerate(row):
-				if value == 1:
-					(fx, fy, fz) = self.info_dict[ID2][0]
-					c2 = self.info_dict[ID2][1]
-					dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
-					if c1 == Category.cloud or c1 == Category.interface or c2 == Category.cloud or c2 == Category.interface:
-						v = air_vel
-					else:
-						v = land_vel
-					time_passed = dist_traveled/float(v)
-					if dist_traveled == 0:#state == ID2:
-						time_passed = wait_time
-					current_time = t + time_passed
-					safe_intervals = si_dict[ID2]
-					for interval in safe_intervals:
-						if interval[0] < current_time < interval[1]:
-							suc_state = ID2
-							sucs.append((suc_state, current_time, time_passed))
-							break
-			#print(sucs)
-			return(sucs)
-		'''
-		def successors(state, time, my_interval):
+
+		def successors(state, time, voltage, my_interval):
 			#print(" ")
 			#print('successors')
 			#print((state, time))
@@ -366,10 +348,17 @@ class system:
 						for interval in safe_intervals:
 							if interval[0] + space_time < current_time < interval[1] - space_time:
 								suc_state = ID2
-								if c2 != Category.park:
-									sucs.append((suc_state, current_time, time_passed, interval))
-								elif goal_test(suc_state, current_time):
-									sucs.append((suc_state, current_time, time_passed, interval))
+
+								energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed)
+								cost = planner_helper.get_cost(energy, time_passed)
+								voltage_drop = planner_helper.get_voltage(energy)
+								final_voltage = voltage - voltage_drop
+
+								if final_voltage > 0:
+									if c2 != Category.park:
+										sucs.append((suc_state, current_time, final_voltage, cost, interval))
+									elif goal_test(suc_state, current_time):
+										sucs.append((suc_state, current_time, final_voltage, cost, interval))
 								#elif interval[1] < my_interval[1] and interval[0] < interval[1] - 2*space_time:
 							#if state overlaps
 							elif interval[0] < my_interval[1]:
@@ -379,10 +368,18 @@ class system:
 								if my_interval[0] < arrival_time < my_interval[1]:
 									#if we can arrive in time
 									if interval[0] <= arrival_time < interval[1] - space_time:
-										if c2 != Category.park:
-											sucs.append((suc_state, arrival_time, arrival_time - time, interval))
-										elif goal_test(suc_state, arrival_time):
-											sucs.append((suc_state, arrival_time, arrival_time - time, interval))
+
+										time_passed = arrival_time - time
+										energy = planner_helper.get_energy(self.info_dict, state, suc_state, time_passed)
+										cost = planner_helper.get_cost(energy, time_passed)
+										voltage_drop = planner_helper.get_voltage(energy)
+										final_voltage = voltage - voltage_drop
+
+										if final_voltage > 0:	
+											if c2 != Category.park:
+												sucs.append((suc_state, arrival_time, final_voltage, cost, interval))
+											elif goal_test(suc_state, arrival_time):
+												sucs.append((suc_state, arrival_time, final_voltage, cost, interval))
 			#print(sucs)
 			return(sucs)
 			
@@ -405,12 +402,17 @@ class system:
 			return(time_dict[state])
 
 		if best_heur:
-			path = a_star(successors, ID1, goal_test, true_time_heur)
+			p_info = a_star(successors, ID1, self.voltage, goal_test, true_time_heur)
 		else:
-			path = a_star(successors, ID1, goal_test, heur)
-		total_planning_time = time.time() - start_planning_time
-		print('Time to plan: '+str(total_planning_time))
-		return(path, total_planning_time)
+			p_info= a_star(successors, ID1, self.voltage, goal_test, heur)
+		if p_info!= None:
+			(path, self.voltage) = p_info
+			total_planning_time = time.time() - start_planning_time
+			print('Time to plan: '+str(total_planning_time))
+			print('Current voltage: '+str(self.voltage))
+			return(path, total_planning_time)
+		else:
+			self.kill(ID1)
 	'''
 	def update_cf_pos(self, pos):
 		#print('position updated: '+str(pos))
@@ -430,6 +432,12 @@ class system:
 			return(dist < .02)
 		return(False)
 	'''
+	#kills path, cf will stop moving, sends almost empty path
+	def kill(self, end_ID):
+		self.running = False
+		self.pubTime.publish(cf_num, self.cf_ID, [end_ID, end_ID], [time.time(), time.time()+1], 0)
+
+
 	def is_finished(self):
 		t = time.time()
 		last_time = self.times[len(self.times) - 1]
@@ -556,10 +564,11 @@ class full_system:
 	def double_check(self):
 		while True:
 			for sys in self.system_list:
-				if sys.is_finished() and continuous:
-					sys.publish_new_path()
-				else:
-					sys.publish_old_path()
+				if sys.running:
+					if sys.is_finished() and continuous:
+						sys.publish_new_path()
+					else:
+						sys.publish_old_path()
 			time.sleep(.1)
 	'''
 	#response to simulator, updates position accordingly

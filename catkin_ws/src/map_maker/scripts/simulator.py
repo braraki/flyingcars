@@ -160,7 +160,7 @@ class system:
 				i = self.info_dict[self.path[len(self.path)-1]]
 				(x, y, z) = i[0]
 				return(x, y, z)
-			if time < self.times[0]:
+			elif time < self.times[0]:
 				i = self.info_dict[self.path[0]]
 				(x, y, z) = i[0]
 				return(x, y, z)
@@ -197,7 +197,7 @@ class full_system:
 			self.collect_info(data)
 		sys = self.system_list[data.ID]
 		sys.new_path(data.path, data.times)
-		#self.sub_run()
+			#self.sub_run()
 
 	#sends constant position messages (thread)
 	def sub_run(self):
