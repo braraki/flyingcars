@@ -32,7 +32,6 @@ def optimal_cost(info_dict, ID1, ID2, air_vel, land_vel, timestep):
 	hover_energy = 0
 	if c1 != Category.land or c1 != Category.park or c1 != Category.waypoint or c2 != Category.land or c2 != Category.park or c2 != Category.waypoint:
 		hover_energy = 0.5
-	time_passed = dist_traveled / float(vel)
 	energy_expended = dist_traveled * float(vel) + hover_energy
 
 	return(TIME_WEIGHT*timestep + ENERGY_WEIGHT*energy_expended)

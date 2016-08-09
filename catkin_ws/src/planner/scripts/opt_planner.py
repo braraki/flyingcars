@@ -201,9 +201,9 @@ def convert_graph(old_graph, old_adj, startend, true_costs, time_horizon):
 	# aka ID+(timestep)*num_IDs
 	# note that you can retrieve the original ID of one of the
 	# new states: old_ID = new_ID % num_IDs
-	na = np.zeros((num_IDs*(th+1),num_IDs*(th+1)))
+	#na = np.zeros((num_IDs*(th+1),num_IDs*(th+1)))
 	# new dict assigns a cost to each edge
-	costs = {}
+	#costs = {}
 	dists = {}
 	arcs = tuplelist()
 
@@ -222,14 +222,14 @@ def convert_graph(old_graph, old_adj, startend, true_costs, time_horizon):
 		for timestep in range(th):
 			current_state = ID+timestep*num_IDs
 			next_state = ID+(timestep+1)*num_IDs
-			na[(current_state, next_state)] = 1
+			#na[(current_state, next_state)] = 1
 			arcs.append((current_state, next_state))
 			# costs are structured so that each robot/edge combo has
 			# a unique cost. This should allow us to adjust cost based
 			# on robot-specific data such as battery voltage
 			for cf in range(cf_num):
 				cost_of_waiting = 0.1
-				costs[(cf,current_state,next_state)] = cost_of_waiting
+				#costs[(cf,current_state,next_state)] = cost_of_waiting
 				dists[(cf,current_state,next_state)] = true_costs[(ID,ID)]
 				if ID == startend[cf][1]:
 					dists[(cf,current_state,next_state)] = 0
@@ -241,7 +241,7 @@ def convert_graph(old_graph, old_adj, startend, true_costs, time_horizon):
 				if value == 1 and ID2 != ID:
 					# ID2 is a successor
 					next_neighbor = ID2+(timestep+1)*num_IDs
-					na[(current_state, next_neighbor)] = 1
+					#na[(current_state, next_neighbor)] = 1
 					arcs.append((current_state, next_neighbor))
 
 					(x1,y1,z1) = old_graph[ID][0]
@@ -251,28 +251,30 @@ def convert_graph(old_graph, old_adj, startend, true_costs, time_horizon):
 
 					for cf in range(cf_num):
 						cost_of_travel = 0.2
-						costs[(cf,current_state, next_neighbor)] = cost_of_travel
+						#costs[(cf,current_state, next_neighbor)] = cost_of_travel
 						dists[(cf,current_state, next_neighbor)] = true_costs[(ID,ID2)]
 						if ID2 == startend[cf][1]:
 							dists[(cf,current_state,next_neighbor)] = 0
 	
-	print num_IDs
-	print len(arcs)
+	print "NUM IDS: " + str(num_IDs)
+	print "num time arcs: " + str(len(arcs))
 	#print arcs
-	return na, costs, arcs, dists
+	#return na, costs, arcs, dists
+	return arcs, dists
 
-def make_model(arcs, costs, dists, startend, num_IDs, type):
+def make_model(arcs, dists, startend, num_IDs, type, optimal_paths,th,adj_array):
 
-	m, flow = generic_model(arcs,startend,num_IDs)
+	m, flow = generic_model(arcs,startend,num_IDs,optimal_paths,th,adj_array)
 
 	if type == 'makespan':
-		return makespan_model(m, flow, arcs, costs, startend, num_IDs)
+		return makespan_model(m, flow, arcs, dists, startend, num_IDs)
 	elif type == 'minmax_distance':
 		return minmax_distance_model(m, flow, arcs, dists, startend, num_IDs)
 	elif type == 'total_distance':
 		return total_distance_model(m, flow, arcs, dists, startend, num_IDs)
 
-def generic_model(arcs,startend,num_IDs):
+def generic_model(arcs,startend,num_IDs, optimal_paths, th, adj_array):
+	print str(time.time()) + " about to make model"
 	m = Model('netflow')
 
 	# add a flow variable for each robot-arc pair
@@ -294,11 +296,23 @@ def generic_model(arcs,startend,num_IDs):
 
 	m.update()
 
+	print str(time.time()) + " added variables to model"
+
+	#for cf in range(cf_num):
+	#	initial_path = optimal_paths[cf]
+	#	for timestep in range(len(initial_path)-1):
+	#		node = initial_path[timestep]
+	#		next_node = initial_path[timestep+1]
+			#flow[cf,node,next_node].start = 1.0
+
+
 	# add capacity constraint on each arc
 	# one robot max per arc
 	for i, j in arcs:
 		m.addConstr(quicksum(flow[cf,i,j] for cf in range(cf_num)) <= 1.0,
 			name='cap_%s_%s' % (i,j))
+
+	print str(time.time()) + " added arc capacity constraints"
 
 	# add capacity constraint on each loopback arc
 	# aka, only robot i can pass through loopback arc i
@@ -311,6 +325,8 @@ def generic_model(arcs,startend,num_IDs):
 				m.addConstr(flow[cf,s,e] == 0,
 					'loopback_cap_%s_%s' % (s,e))
 
+	print str(time.time()) + " added loopback constraints"
+
 	# flow conservation constraints
 	for cf in range(cf_num):
 		for node in range(num_IDs):
@@ -318,26 +334,49 @@ def generic_model(arcs,startend,num_IDs):
 				quicksum(flow[cf,j,k] for j,k in arcs.select(node,'*')),
 					'node_%s_%s' % (cf,node))
 
+	print str(time.time()) + " added flow conservation constraints"
 
 	# add head-on collision constraint
-	already_checked = []
-	for node in range(num_IDs):
-		out = arcs.select(node,'*')
-		for u_t0, v_t1 in out:
-			v_t0 = v_t1 - nontime_IDs
-			u_t1 = u_t0 + nontime_IDs
-			if valid(v_t0, num_IDs) and valid(u_t1, num_IDs) and u_t0 != v_t0:
-				v_out = arcs.select(v_t0,'*')
-				out_nodes = [y for x, y in v_out]
-				if u_t1 in out_nodes:
-					edge1 = (u_t0, v_t1)
-					edge2 = (v_t0, u_t1)
-					if edge1 not in already_checked:
-						already_checked.append(edge1)
-						already_checked.append(edge2)
-						m.addConstr(quicksum(flow[cf,u_t0,v_t1] for cf in range(cf_num)) +
-							quicksum(flow[cf,v_t0,u_t1] for cf in range(cf_num)) <= 1,
-							'head_on_%s_%s' % (u_t0, v_t0))
+	# already_checked = []
+	# for node in range(num_IDs):
+	# 	out = arcs.select(node,'*')
+	# 	for u_t0, v_t1 in out:
+	# 		v_t0 = v_t1 - nontime_IDs
+	# 		u_t1 = u_t0 + nontime_IDs
+	# 		if valid(v_t0, num_IDs) and valid(u_t1, num_IDs) and u_t0 != v_t0:
+	# 			v_out = arcs.select(v_t0,'*')
+	# 			for x, y in v_out:
+	# 				if y == u_t1:
+	# 					edge1 = (u_t0, v_t1)
+	# 					edge2 = (v_t0, u_t1)
+	# 					if edge1 not in already_checked:
+	# 						already_checked.append(edge1)
+	# 						already_checked.append(edge2)
+	# 						m.addConstr(quicksum(flow[cf,u_t0,v_t1] for cf in range(cf_num)) +
+	# 							quicksum(flow[cf,v_t0,u_t1] for cf in range(cf_num)) <= 1,
+	# 							'head_on_%s_%s' % (u_t0, v_t0))
+
+	for ID1 in range(nontime_IDs):
+	# need to connect ID+timestep*num_IDs to ID+(timestep+1)*num_IDs
+		row = adj_array[ID1]
+		for (ID2, value) in enumerate(row):
+			# ID2 > ID1 because we don't want to consider when ID1 == ID2 and
+			# we've already considered the case when ID1 > ID2
+			if value == 1 and ID2 > ID1:
+				id2_row = adj_array[ID2]
+				# this is to check that ID1 and ID2 both have edges to each other
+				if id2_row[ID1] == 1:
+					for timestep in range(th):
+						u_t0 = ID1+timestep*nontime_IDs
+						u_t1 = ID1 + (timestep+1)*nontime_IDs
+						v_t0 = ID2 + timestep*nontime_IDs
+						v_t1 = ID2 + (timestep+1)*nontime_IDs
+						for cf in range(cf_num):
+							m.addConstr(quicksum(flow[cf,u_t0,v_t1] for cf in range(cf_num)) + 
+								quicksum(flow[cf,v_t0,u_t1] for cf in range(cf_num)) <= 1,
+								'head_on_%s_%s' % (u_t0, v_t0))
+
+	print str(time.time()) + " added head-on collision constraints"
 
 	# add meet collision constraint
 	for v in range(num_IDs):
@@ -348,6 +387,7 @@ def generic_model(arcs,startend,num_IDs):
 				flow_list.append((cf,i,o))
 		m.addConstr(quicksum(flow[cf,i,o] for cf,i,o in flow_list) <= 1)
 
+	print str(time.time()) + " added meet collison constraints"
 	return m, flow
 
 def makespan_model(m, flow, arcs, costs, startend, num_IDs):
@@ -423,21 +463,18 @@ class full_system:
 
 		model_type = 'total_distance'
 		startend = tuplelist()
-		#true_steps = []
-		true_dists = []
 		optimal_paths = []
 		optimal_steps = []
 		min_time_horizon = 0
+
+		print str(time.time()) + " generating costs"
+
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
 			#self.system_list.append(sys)
 			(ID1, ID2) = self.request_situation(cf_ID)
 			startend.append((ID1,ID2))
-			true_dist_list = true_distances(self.info_dict,self.adj_array,startend[cf_ID][1])
 			print startend[cf_ID]
-			#print true_dist_list
-			true_dists.append(true_dist_list[0])
-			#true_steps.append(true_dist_list[1])
 			optimal_path, optimal_path_steps = optimal_distance(self.info_dict,self.adj_array,ID1,ID2)
 			optimal_paths.append(optimal_path)
 			optimal_steps.append(optimal_path_steps)
@@ -445,20 +482,30 @@ class full_system:
 				min_time_horizon = optimal_steps[cf_ID]
 			print "min horizon %d for cf %d" % (min_time_horizon, cf_ID)
 
+		optimal_time_paths = self.paths_to_time_paths(optimal_paths)
+
 		true_costs = edge_costs(self.info_dict, self.adj_array)
 
-		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,true_dists,min_time_horizon)
+		print str(time.time()) + " about to convert graph"
 
-		m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(min_time_horizon+1),model_type)
+		arcs, dists = convert_graph(self.info_dict,A,startend,true_costs,min_time_horizon)
+
+		print str(time.time()) + " converted graph; about to make model"
+
+		m, flow = make_model(arcs, dists, startend, self.num_IDs*(min_time_horizon+1),model_type,optimal_time_paths,min_time_horizon,self.adj_array)
+
+
 
 		m.optimize()
+
+		print str(time.time()) + " optimization finished"
 
 		time_horizon = min_time_horizon
 
 		while m.status != GRB.Status.OPTIMAL and time_horizon < 2*min_time_horizon*cf_num:
 			time_horizon = time_horizon + 1
-			na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,true_dists,time_horizon)
-			m, flow = make_model(arcs, costs, dists, startend, self.num_IDs*(time_horizon+1),model_type)
+			arcs, dists = convert_graph(self.info_dict,A,startend,true_costs,time_horizon)
+			m, flow = make_model(arcs, dists, startend, self.num_IDs*(time_horizon+1),model_type,optimal_time_paths,time_horizon,self.adj_array)
 			m.optimize()
 
 		# Print solution
@@ -518,6 +565,16 @@ class full_system:
 			new_node = node - timestep*self.num_IDs
 			new_path.append(new_node)
 		return new_path
+
+	def paths_to_time_paths(self,paths):
+		time_paths = []
+		for path in paths:
+			time_path = []
+			for timestep, node in enumerate(path):
+				new_node = node + timestep*self.num_IDs
+				time_path.append(new_node)
+			time_paths.append(time_path)
+		return time_paths
 
 	def request_situation(self,cf_ID):
 			global count
