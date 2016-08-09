@@ -11,11 +11,9 @@
   <arg name="land_vel" default=".25" />
 
   <remap from="simple_marker/time_path_topic" to="$(arg planner)/time_path_topic" />
-  <remap from="simulator/time_path_topic" to="$(arg planner)/time_path_topic" />
-  <remap from="$(arg planner)/SimPos_topic" to="simulator/SimPos_topic" />
-  <remap from="recorder/time_path_topic" to="$(arg planner)/time_path_topic" />
-
   <remap from="simple_marker/Start_SimPos_topic" to="setup/Start_SimPos_topic" />
+  <remap from="$(arg planner)/time_path_topic" to="play_path/time_path_topic" />
+  <remap from="simulator/SimPos_topic" to="play_pos/SimPos_topic" />
 
   <include file="$(find map_maker)/launch/visualizer.launch">
   	<arg name="cf_num" value="$(arg cf_num)" />
@@ -34,13 +32,7 @@
     <arg name="optimal" default="True" />
   </include>
 
-  <include file="$(find planner)/launch/$(arg planner).launch">
-    <arg name="cf_num" value="$(arg cf_num)"/>
-    <arg name="z_coefficient" value="$(arg z_coefficient)"/>
-    <arg name="continuous" value="$(arg continuous)" />
-    <arg name="land_vel" value="$(arg land_vel)" />
-    <arg name="air_vel" value="$(arg air_vel)" />
-  </include>
+
   <!--
   <node name="recorder" pkg="flyingcar_demo" type="recorder.py" output="screen" />
   -->
@@ -48,4 +40,7 @@
   <node name="record_path" pkg="rosbag" type="record" args="-o $(find flyingcar_demo)/rosbag_files/path.rosbag $(arg planner)/time_path_topic" output="screen" />
   <node name="record_pos" pkg="rosbag" type="record" args="-o $(find flyingcar_demo)/rosbag_files/poses.rosbag simulator/SimPos_topic" output="screen" />
   -->
+  <node name="play_path" pkg="rosbag" type="play" args="--clock $(find flyingcar_demo)/rosbag_files/path.rosbag_2016-08-08-16-56-15.bag" output="screen" />
+  <node name="play_pos" pkg="rosbag" type="play" args="--clock $(find flyingcar_demo)/rosbag_files/poses.rosbag_2016-08-08-16-56-15.bag" output="screen" />
+
 </launch>
