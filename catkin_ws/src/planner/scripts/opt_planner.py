@@ -21,6 +21,7 @@ import numpy as np
 
 import thread
 from map_maker import gen_adj_array_info_dict
+from planner import planner_helper
 
 from gurobipy import *
 
@@ -37,6 +38,7 @@ air_buffer_dist = float(rospy.get_param('/opt_planner/air_buffer_dist'))
 
 count = 0
 nontime_IDs = 0
+planner_timestep = 0.5
 '''
 class Category(Enum):
 	mark = 0
@@ -156,7 +158,38 @@ def true_distances(info_dict, adj_array, goal):
 		return sucs
 	return dijkstra(successors, goal)
 
-def convert_graph(old_graph, old_adj, startend, true_dists, time_horizon):
+def edge_costs(info_dict, adj_array):
+	costs = {}
+	num_IDs = len(info_dict)
+	for ID1 in range(num_IDs):
+		row = adj_array[ID1]
+		for (ID2, value) in enumerate(row):
+			if value == 1 or ID1 == ID2:
+				costs[(ID1, ID2)] = planner_helper.optimal_cost(info_dict, ID1, ID2, air_vel, land_vel, planner_timestep)
+	return costs
+
+def optimal_distance(info_dict, adj_array, start, goal):
+	(x2, y2, z2) = info_dict[goal][0]
+	def successors(id):
+		(x1, y1, z1) = info_dict[id][0]
+		sucs = []
+		row = adj_array[id]
+		for (goal, value) in enumerate(row):
+			if value == 1:
+				(fx, fy, fz) = info_dict[goal][0]
+				dist_traveled = ((x1-fx)**2 + (y1-fy)**2 + (z1-fz)**2)**.5
+				sucs.append((goal, dist_traveled))
+		return(sucs)
+	def goal_test(id):
+		return  goal == id
+	def dist(id):
+		(x1, y1, z1) = info_dict[id][0]
+		dist = ((x1-x2)**2 + (y1-y2)**2 + (z1-z2)**2)**.5
+		return(dist)
+	optimal_path = a_star(successors, start, goal_test, dist)
+	return optimal_path, len(optimal_path)
+
+def convert_graph(old_graph, old_adj, startend, true_costs, time_horizon):
 	og = old_graph
 	oa = old_adj
 	th = time_horizon
@@ -197,7 +230,9 @@ def convert_graph(old_graph, old_adj, startend, true_dists, time_horizon):
 			for cf in range(cf_num):
 				cost_of_waiting = 0.1
 				costs[(cf,current_state,next_state)] = cost_of_waiting
-				dists[(cf,current_state,next_state)] = true_dists[cf][ID]
+				dists[(cf,current_state,next_state)] = true_costs[(ID,ID)]
+				if ID == startend[cf][1]:
+					dists[(cf,current_state,next_state)] = 0
 
 			# need to find successors of ID (sID) and connect
 			# ID+timestep*num_IDs to sID+(timestep+1)*num_IDs
@@ -217,7 +252,9 @@ def convert_graph(old_graph, old_adj, startend, true_dists, time_horizon):
 					for cf in range(cf_num):
 						cost_of_travel = 0.2
 						costs[(cf,current_state, next_neighbor)] = cost_of_travel
-						dists[(cf,current_state, next_neighbor)] = true_dists[cf][ID2]
+						dists[(cf,current_state, next_neighbor)] = true_costs[(ID,ID2)]
+						if ID2 == startend[cf][1]:
+							dists[(cf,current_state,next_neighbor)] = 0
 	
 	print num_IDs
 	print len(arcs)
@@ -380,12 +417,16 @@ class full_system:
 	def runner(self):
 		global nontime_IDs
 
+		planning_start_time = time.time()
+
 		nontime_IDs = self.num_IDs
 
 		model_type = 'total_distance'
 		startend = tuplelist()
-		true_steps = []
+		#true_steps = []
 		true_dists = []
+		optimal_paths = []
+		optimal_steps = []
 		min_time_horizon = 0
 		for cf_ID in range(cf_num):
 			#sys = system(self.adj_array, self.info_dict, cf_ID, self.pubTime)
@@ -396,10 +437,15 @@ class full_system:
 			print startend[cf_ID]
 			#print true_dist_list
 			true_dists.append(true_dist_list[0])
-			true_steps.append(true_dist_list[1])
-			if true_steps[cf_ID][ID1] > min_time_horizon:
-				min_time_horizon = true_steps[cf_ID][ID1]
+			#true_steps.append(true_dist_list[1])
+			optimal_path, optimal_path_steps = optimal_distance(self.info_dict,self.adj_array,ID1,ID2)
+			optimal_paths.append(optimal_path)
+			optimal_steps.append(optimal_path_steps)
+			if optimal_steps[cf_ID] > min_time_horizon:
+				min_time_horizon = optimal_steps[cf_ID]
 			print "min horizon %d for cf %d" % (min_time_horizon, cf_ID)
+
+		true_costs = edge_costs(self.info_dict, self.adj_array)
 
 		na, costs, arcs, dists = convert_graph(self.info_dict,A,startend,true_dists,min_time_horizon)
 
@@ -417,6 +463,9 @@ class full_system:
 
 		# Print solution
 		if m.status == GRB.Status.OPTIMAL:
+			planning_end_time = time.time()
+			planning_time = planning_start_time - planning_end_time
+
 			print "TIME HORIZON: %d" % (time_horizon)
 			solution = m.getAttr('x', flow)
 			for h in range(cf_num):
@@ -430,10 +479,10 @@ class full_system:
 				print "PUBLISHING PATH"
 				print cf, paths[cf]
 				#print times[cf]
-				self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+				self.pubTime.publish(cf_num,cf,paths[cf],times[cf],planning_time)
 			while True:
 				for cf in range(cf_num):
-					self.pubTime.publish(cf_num,cf,paths[cf],times[cf])
+					self.pubTime.publish(cf_num,cf,paths[cf],times[cf],planning_time)
 				time.sleep(0.1)
 
 	def extract_paths(self,solution,arcs):
@@ -451,7 +500,7 @@ class full_system:
 			time_adjusted_path = self.time_adjust(ordered_path)
 			paths[cf] = time_adjusted_path
 			current_time = time.time()
-			times[cf] = [0.5*x for x in range(0,len(paths[cf]))]
+			times[cf] = [planner_timestep*x for x in range(0,len(paths[cf]))]
 		return paths,times
 
 	def order_path(self,path,node):
